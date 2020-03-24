@@ -669,7 +669,7 @@ static const char * redmul_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_mul(xy[gid].z);\n"
+"    out[gid] = sub_group_reduce_clustered_mul(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redand_clustered_source =
@@ -1365,8 +1365,8 @@ struct RED_NU {
 
         log_info("  sub_group_non_uniform_reduce_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val());
 
-        unsigned long val1 = 0;
-        unsigned long val2 = 0;
+        uint64_t val1 = 0;
+        uint64_t val2 = 0;
         size_t size_to_copy = 0;
         if (strstr(TypeDef<Ty>::val(), "double")) {
             size_to_copy = sizeof(uint64_t);
@@ -1486,7 +1486,7 @@ struct RED_NU {
                 for (i = 0; i < n; ++i) {
                     rr = my[ii + i];
                     if (rr != tr) {
-                        log_error("ERROR: sub_group_non_unifor_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
+                        log_error("ERROR: sub_group_non_uniform_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
                             Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val(), i, j, k, rr, tr);
                         return -1;
                     }
@@ -1552,7 +1552,7 @@ struct RED_NU_LG {
         int nj = (nw + ns - 1) / ns;
         cl_int tr, rr;
 
-        log_info("  sub_group_non_unifor_reduce_logical_%s...\n", Which == 4 ? "and" : (Which == 5 ? "or" : "xor"));
+        log_info("  sub_group_non_uniform_reduce_logical_%s...\n", Which == 4 ? "and" : (Which == 5 ? "or" : "xor"));
 
         for (k = 0; k < ng; ++k) {          // for each work_group
             // Map to array indexed to array indexed by local ID and sub group
@@ -1583,13 +1583,13 @@ struct RED_NU_LG {
                             tr ^= mx[ii + i];
                         }
                         else {
-                            log_error("ERROR: sub_group_non_unifor_reduce_logical - unknown function type number");
+                            log_error("ERROR: sub_group_non_uniform_reduce_logical - unknown function type number");
                             return -1;
                         }
                     }
                     rr = my[ii + i];
                     if (rr != tr) {
-                        log_error("ERROR: sub_group_non_unifor_reduce_logical_%s mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
+                        log_error("ERROR: sub_group_non_uniform_reduce_logical_%s mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
                             (Which == 0 ? "add" : Which == 4 ? "and" : (Which == 5 ? "or" : "xor")), i, j, k, rr, tr);
                         return -1;
                     }
@@ -1650,8 +1650,8 @@ struct RED_CLU {
         int ii, i, j, k, n, cluster_size;
         int nj = (nw + ns - 1) / ns;
         Ty tr, rr, trt;
-        unsigned long val1 = 0;
-        unsigned long val2 = 0;
+        uint64_t val1 = 0;
+        uint64_t val2 = 0;
         size_t size_to_copy = 0;
         if (strstr(TypeDef<Ty>::val(), "double")) {
             size_to_copy = sizeof(uint64_t);
@@ -1928,10 +1928,10 @@ struct SCIN_NU {
         int nj = (nw + ns - 1) / ns;
         Ty tr, rr, trt;
 
-        log_info("  sub_group_non_unifor_scan_inclusive_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul": (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val());
+        log_info("  sub_group_non_uniform_scan_inclusive_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul": (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val());
 
-        unsigned long val1 = 0;
-        unsigned long val2 = 0;
+        uint64_t val1 = 0;
+        uint64_t val2 = 0;
         size_t size_to_copy = 0;
         if (strstr(TypeDef<Ty>::val(), "double")) {
             size_to_copy = sizeof(uint64_t);
@@ -1986,7 +1986,7 @@ struct SCIN_NU {
                             tr = i == 0 ? mx[ii] : val1 ^ val2;
                         }
                         else {
-                            log_error("ERROR: sub_group_non_unifor_scan_inclusive - unknown function type number");
+                            log_error("ERROR: sub_group_non_uniform_scan_inclusive - unknown function type number");
                             return -1;
                         }
 
@@ -1996,7 +1996,7 @@ struct SCIN_NU {
                     std::memcpy(&val1, &tr, size_to_copy);
                     std::memcpy(&val2, &trt, size_to_copy);
                     if (rr != tr) {
-                        log_error("ERROR: sub_group_non_unifor_scan_inclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
+                        log_error("ERROR: sub_group_non_uniform_scan_inclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
                             Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val(), i, j, k, rr, tr);
                         return -1;
                     }
@@ -2061,7 +2061,7 @@ struct SCIN_NU_LG {
         int nj = (nw + ns - 1) / ns;
         cl_int tr, rr;
 
-        log_info("  sub_group_non_unifor_scan_inclusive_logical_%s...\n", Which == 4 ? "and" : (Which == 5 ? "or" : "xor"));
+        log_info("  sub_group_non_uniform_scan_inclusive_logical_%s...\n", Which == 4 ? "and" : (Which == 5 ? "or" : "xor"));
 
         for (k = 0; k < ng; ++k) {          // for each work_group
             // Map to array indexed to array indexed by local ID and sub group
@@ -2091,13 +2091,13 @@ struct SCIN_NU_LG {
                             tr = i == 0 ? mx[ii] : tr ^ mx[ii + i];;
                         }
                         else {
-                            log_error("ERROR: sub_group_non_unifor_scan_inclusive_logical - unknown function type number");
+                            log_error("ERROR: sub_group_non_uniform_scan_inclusive_logical - unknown function type number");
                             return -1;
                         }
                     }
                     rr = my[ii + i];
                     if (rr != tr) {
-                        log_error("ERROR: sub_group_non_unifor_scan_inclusive_logical_%s mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
+                        log_error("ERROR: sub_group_non_uniform_scan_inclusive_logical_%s mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
                             (Which == 0 ? "add" : Which == 4 ? "and" : (Which == 5 ? "or" : "xor")), i, j, k, rr, tr);
                         return -1;
                     }
@@ -2301,10 +2301,10 @@ struct SCEX_NU {
         int nj = (nw + ns - 1) / ns;
         Ty tr, trt, rr;
 
-        log_info("  sub_group_non_unifor_scan_exclusive_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val());
+        log_info("  sub_group_non_uniform_scan_exclusive_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val());
 
-        unsigned long val1 = 0;
-        unsigned long val2 = 0;
+        uint64_t val1 = 0;
+        uint64_t val2 = 0;
         size_t size_to_copy = 0;
         if (strstr(TypeDef<Ty>::val(), "double")) {
             size_to_copy = sizeof(uint64_t);
@@ -2359,7 +2359,7 @@ struct SCEX_NU {
 
                     }
                     else {
-                        log_error("ERROR: sub_group_non_unifor_scan_exclusive - unknown function type number");
+                        log_error("ERROR: sub_group_non_uniform_scan_exclusive - unknown function type number");
                         return -1;
                     }
                     trt = mx[ii + i];
@@ -2368,7 +2368,7 @@ struct SCEX_NU {
                     std::memcpy(&val2, &trt, size_to_copy);
 
                     if (rr != tr) {
-                        log_error("ERROR: sub_group_non_unifor_scan_exclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
+                        log_error("ERROR: sub_group_non_uniform_scan_exclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
                             Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val(), i, j, k, rr, tr);
                         return -1;
                     }
@@ -2433,7 +2433,7 @@ struct SCEX_NU_LG {
         int nj = (nw + ns - 1) / ns;
         cl_int tr, trt, rr;
 
-        log_info("  sub_group_non_unifor_scan_exclusive_logical_%s...\n", Which == 4 ? "and" : (Which == 5 ? "or" : "xor"));
+        log_info("  sub_group_non_uniform_scan_exclusive_logical_%s...\n", Which == 4 ? "and" : (Which == 5 ? "or" : "xor"));
 
         for (k = 0; k < ng; ++k) {      // for each work_group
             // Map to array indexed to array indexed by local ID and sub group
@@ -2464,14 +2464,14 @@ struct SCEX_NU_LG {
 
                     }
                     else {
-                        log_error("ERROR: sub_group_non_unifor_scan_exclusive_logical - unknown function type number");
+                        log_error("ERROR: sub_group_non_uniform_scan_exclusive_logical - unknown function type number");
                         return -1;
                     }
                     trt = mx[ii + i];
                     rr = my[ii + i];
 
                     if (rr != tr) {
-                        log_error("ERROR: sub_group_non_unifor_scan_exclusive_logical_%s mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
+                        log_error("ERROR: sub_group_non_uniform_scan_exclusive_logical_%s mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
                             (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")), i, j, k, rr, tr);
                         return -1;
                     }
