@@ -326,7 +326,7 @@ static const char * scinadd_non_uniform_source =
 " if (xy[gid].x < NON_UNIFORM) {"
 "    out[gid] = x ;\n"
 " }"
-"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
+//"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
 "}\n";
 static const char * scinmax_non_uniform_source =
 "__kernel void test_scinmax_non_uniform(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -442,7 +442,7 @@ static const char * scexadd_non_uniform_source =
 " if (xy[gid].x < NON_UNIFORM) {"
 "    out[gid] = x ;\n"
 " }"
-"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
+//"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
 "}\n";
 
 static const char * scexmax_non_uniform_source =
@@ -544,7 +544,7 @@ static const char * redadd_non_uniform_source =
 " if (xy[gid].x < NON_UNIFORM) {"
 "    out[gid] = x ;\n"
 " }"
-"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
+//"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
 "}\n";
 
 static const char * redmax_non_uniform_source =
@@ -642,10 +642,10 @@ static const char * redadd_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    Type x = sub_group_reduce_clustered_add(xy[gid].z);"
+"    Type x = sub_group_reduce_clustered_add(in[gid], xy[gid].z);"
 "    out[gid] = x ;\n"
 
-"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
+//"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
 "}\n";
 
 static const char * redmax_clustered_source =
@@ -653,7 +653,7 @@ static const char * redmax_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_max(xy[gid].z);\n"
+"    out[gid] = sub_group_reduce_clustered_max(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redmin_clustered_source =
@@ -661,7 +661,7 @@ static const char * redmin_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_min(xy[gid].z);\n"
+"    out[gid] = sub_group_reduce_clustered_min(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redmul_clustered_source =
@@ -677,7 +677,7 @@ static const char * redand_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_and(xy[gid].z);\n"
+"    out[gid] = sub_group_reduce_clustered_and(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redor_clustered_source =
@@ -685,7 +685,7 @@ static const char * redor_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_or(xy[gid].z);\n"
+"    out[gid] = sub_group_reduce_clustered_or(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redxor_clustered_source =
@@ -693,7 +693,7 @@ static const char * redxor_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_xor(xy[gid].z);\n"
+"    out[gid] = sub_group_reduce_clustered_xor(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redand_clustered_logical_source =
@@ -701,7 +701,7 @@ static const char * redand_clustered_logical_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_logical_and(xy[gid].z);\n"
+"    out[gid] = sub_group_reduce_clustered_logical_and(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redor_clustered_logical_source =
@@ -709,7 +709,7 @@ static const char * redor_clustered_logical_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_logical_or(xy[gid].z);\n"
+"    out[gid] = sub_group_reduce_clustered_logical_or(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redxor_clustered_logical_source =
@@ -717,7 +717,7 @@ static const char * redxor_clustered_logical_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_logical_xor(xy[gid].z);\n"
+"    out[gid] = sub_group_reduce_clustered_logical_xor(in[gid], xy[gid].z);\n"
 "}\n";
 
 // These need to stay in sync with the kernel source below
@@ -3157,13 +3157,13 @@ struct BALLOT3 {
 int
 test_work_group_functions(cl_device_id device, cl_context context, cl_command_queue queue, int num_elements)
 {
-    int error;
+    int error = false;
 
     // Adjust these individually below if desired/needed
 #define G 2000
 #define L 200
     std::vector<std::string> required_extensions;
-    error = test<int, AA<0>, G, L>::run(device, context, queue, num_elements, "test_any", any_source);
+    error |= test<int, AA<0>, G, L>::run(device, context, queue, num_elements, "test_any", any_source);
     error |= test<int, AA<1>, G, L>::run(device, context, queue, num_elements, "test_all", all_source);
 
     // error |= test<cl_half, BC<cl_half>, G, L>::run(device, context, queue, num_elements, "test_bcast", bcast_source);
@@ -3333,10 +3333,10 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
     error |= test<cl_ushort, SCIN<cl_ushort, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin", scinmin_source, 0, required_extensions);
     error |= test<cl_char, SCIN<cl_char, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin", scinmin_source, 0, required_extensions);
     error |= test<cl_uchar, SCIN<cl_uchar, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin", scinmin_source, 0, required_extensions);
-    error |= test<cl_short, SCEX<cl_short, 0>, G, L>::run(device, context, queue, num_elements, "test_scexadd", scinadd_source, 0, required_extensions);
-    error |= test<cl_ushort, SCEX<cl_ushort, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd", scinadd_source, 0, required_extensions);
-    error |= test<cl_char, SCEX<cl_char, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd", scinadd_source, 0, required_extensions);
-    error |= test<cl_uchar, SCEX<cl_uchar, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd", scinadd_source, 0, required_extensions);
+    error |= test<cl_short, SCEX<cl_short, 0>, G, L>::run(device, context, queue, num_elements, "test_scexadd", scexadd_source, 0, required_extensions);
+    error |= test<cl_ushort, SCEX<cl_ushort, 0>, G, L>::run(device, context, queue, num_elements, "test_scexadd", scexadd_source, 0, required_extensions);
+    error |= test<cl_char, SCEX<cl_char, 0>, G, L>::run(device, context, queue, num_elements, "test_scexadd", scexadd_source, 0, required_extensions);
+    error |= test<cl_uchar, SCEX<cl_uchar, 0>, G, L>::run(device, context, queue, num_elements, "test_scexadd", scexadd_source, 0, required_extensions);
     error |= test<cl_short, SCEX<cl_short, 1>, G, L>::run(device, context, queue, num_elements, "test_scexmax", scexmax_source, 0, required_extensions);
     error |= test<cl_ushort, SCEX<cl_ushort, 1>, G, L>::run(device, context, queue, num_elements, "test_scexmax", scexmax_source, 0, required_extensions);
     error |= test<cl_char, SCEX<cl_char, 1>, G, L>::run(device, context, queue, num_elements, "test_scexmax", scexmax_source, 0, required_extensions);
