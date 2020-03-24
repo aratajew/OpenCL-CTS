@@ -1940,10 +1940,10 @@ struct RED_CLU_LG {
 };
 
 // DESCRIPTION:
-// Test for scan inclusive non uniform functions
-// Which: 0 - add, 1 - max, 2 - min, 3 - mul, 4 - and, 5 - or, 6 - xor
+// Test for scan inclusive non uniform arithmetic functions
+// Which: 0 - add, 1 - max, 2 - min, 3 - mul
 template <typename Ty, int Which>
-struct SCIN_NU {
+struct SCIN_NU_AM {
     static void gen(Ty *x, Ty *t, cl_int *m, int ns, int nw, int ng)
     {
         int i, ii, j, k, n;
@@ -1977,20 +1977,7 @@ struct SCIN_NU {
         int nj = (nw + ns - 1) / ns;
         Ty tr, rr, trt;
 
-        log_info("  sub_group_non_unifor_scan_inclusive_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul": (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val());
-
-        unsigned long val1 = 0;
-        unsigned long val2 = 0;
-        size_t size_to_copy = 0;
-        if (strstr(TypeDef<Ty>::val(), "double")) {
-            size_to_copy = sizeof(uint64_t);
-        }
-        if (strstr(TypeDef<Ty>::val(), "float")) {
-            size_to_copy = sizeof(uint32_t);
-        }
-        if (strstr(TypeDef<Ty>::val(), "half")) {
-            size_to_copy = sizeof(uint16_t);
-        }
+        log_info("  sub_group_non_unifor_scan_inclusive_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : "mul")), TypeName<Ty>::val());
 
         for (k = 0; k < ng; ++k) {      // for each work_group
             // Map to array indexed to array indexed by local ID and sub group
@@ -2006,7 +1993,6 @@ struct SCIN_NU {
                 // Check result
                 for (i = 0; i < n; ++i) {   // inside the subgroup
                     if (i > NON_UNIFORM - 1) {
-                        val1 = 0;
                         tr = 0;
                     }
                     else {
@@ -2022,31 +2008,106 @@ struct SCIN_NU {
                         else if (Which == 3) {  // function mul
                             tr = i == 0 ? mx[ii] : tr * mx[ii + i];
                         }
-                        else if (Which == 4) {  // function and
-                            //tr = i == 0 ? mx[ii] : tr & mx[ii + i];
-                            tr = i == 0 ? mx[ii] : val1 & val2;
-                        }
-                        else if (Which == 5) {  // function or
-                            //tr = i == 0 ? mx[ii] : tr | mx[ii + i];
-                            tr = i == 0 ? mx[ii] : val1 | val2;
-                        }
-                        else if (Which == 6) {  // function xor
-                            //tr = i == 0 ? mx[ii] : tr ^ mx[ii + i];
-                            tr = i == 0 ? mx[ii] : val1 ^ val2;
-                        }
                         else {
-                            log_error("ERROR: sub_group_non_unifor_scan_inclusive - unknown function type number");
+                            log_error("ERROR: sub_group_non_uniform_scan_inclusive - unknown function type number");
                             return -1;
                         }
 
                     }
                     trt = mx[ii + i];
                     rr = my[ii + i];
-                    std::memcpy(&val1, &tr, size_to_copy);
-                    std::memcpy(&val2, &trt, size_to_copy);
                     if (rr != tr) {
-                        log_error("ERROR: sub_group_non_unifor_scan_inclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
-                            Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val(), i, j, k, rr, tr);
+                        log_error("ERROR: sub_group_non_uniform_scan_inclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
+                            Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : "mul")), TypeName<Ty>::val(), i, j, k, rr, tr);
+                        return -1;
+                    }
+                }
+            }
+            x += nw;
+            y += nw;
+            m += 4 * nw;
+        }
+
+        return 0;
+    }
+};
+
+// DESCRIPTION:
+// Test for scan inclusive non uniform bitwise functions
+// Which: 4 - and, 5 - or, 6 - xor
+template <typename Ty, int Which>
+struct SCIN_NU_BW {
+    static void gen(Ty* x, Ty* t, cl_int* m, int ns, int nw, int ng)
+    {
+        int i, ii, j, k, n;
+        int nj = (nw + ns - 1) / ns;
+
+        ii = 0;
+        for (k = 0; k < ng; ++k) {          // for each work_group
+            for (j = 0; j < nj; ++j) {      // for each subgroup
+                ii = j * ns;
+                n = ii + ns > nw ? nw - ii : ns;
+
+                for (i = 0; i < n; ++i)
+                    t[ii + i] = (Ty)i;
+            }
+
+            // Now map into work group using map from device
+            for (j = 0; j < nw; ++j) {
+                i = m[4 * j + 1] * ns + m[4 * j];
+                x[j] = t[i];
+            }
+
+            x += nw;
+            m += 4 * nw;
+        }
+    }
+
+    static int chk(Ty* x, Ty* y, Ty* mx, Ty* my, cl_int* m, int ns, int nw, int ng)
+    {
+        int ii, i, j, k, n;
+        int nj = (nw + ns - 1) / ns;
+        Ty tr, rr, trt;
+
+        log_info("  sub_group_non_uniform_scan_inclusive_%s(%s)...\n", Which == 4 ? "and" : (Which == 5 ? "or" : "xor"), TypeName<Ty>::val());
+
+        for (k = 0; k < ng; ++k) {      // for each work_group
+            // Map to array indexed to array indexed by local ID and sub group
+            for (j = 0; j < nw; ++j) {  // inside the work_group
+                i = m[4 * j + 1] * ns + m[4 * j];
+                mx[i] = x[j];           // read host inputs for work_group
+                my[i] = y[j];           // read device outputs for work_group
+            }
+
+            for (j = 0; j < nj; ++j) {  // for each subgroup
+                ii = j * ns;
+                n = ii + ns > nw ? nw - ii : ns;
+                // Check result
+                for (i = 0; i < n; ++i) {   // inside the subgroup
+                    if (i > NON_UNIFORM - 1) {
+                        tr = 0;
+                    }
+                    else {
+                        if (Which == 4) {  // function and
+                            tr = i == 0 ? mx[ii] : tr & mx[ii + i];
+                        }
+                        else if (Which == 5) {  // function or
+                            tr = i == 0 ? mx[ii] : tr | mx[ii + i];
+                        }
+                        else if (Which == 6) {  // function xor
+                            tr = i == 0 ? mx[ii] : tr ^ mx[ii + i];
+                        }
+                        else {
+                            log_error("ERROR: sub_group_non_uniform_scan_inclusive - unknown function type number");
+                            return -1;
+                        }
+
+                    }
+                    trt = mx[ii + i];
+                    rr = my[ii + i];
+                    if (rr != tr) {
+                        log_error("ERROR: sub_group_non_uniform_scan_inclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
+                            Which == 4 ? "and" : (Which == 5 ? "or" : "xor"), TypeName<Ty>::val(), i, j, k, rr, tr);
                         return -1;
                     }
                 }
@@ -2067,7 +2128,7 @@ template <int Which>
 struct SCIN_NU_LG {
     static void gen(cl_int *x, cl_int *t, cl_int *m, int ns, int nw, int ng)
     {
-        int i, ii, j, k, n;
+        int i, ii, j, k, n, c;
         int nj = (nw + ns - 1) / ns;
         int e;
         ii = 0;
@@ -2075,7 +2136,7 @@ struct SCIN_NU_LG {
             for (j = 0; j < nj; ++j) {      // for each subgroup
                 ii = j * ns;
                 n = ii + ns > nw ? nw - ii : ns;
-                e = (int)(genrand_int32(gMTdata) % 3);
+                e = (int)(genrand_int32(gMTdata) % 2);
 
                 // Initialize data matrix indexed by local id and sub group id
                 switch (e) {
@@ -2083,12 +2144,7 @@ struct SCIN_NU_LG {
                     memset(&t[ii], 0, n * sizeof(cl_int));
                     break;
                 case 1:
-                    memset(&t[ii], 0, n * sizeof(cl_int));
-                    i = (int)(genrand_int32(gMTdata) % (cl_uint)n);
-                    t[ii + i] = 41;
-                    break;
-                case 2:
-                    memset(&t[ii], 0xff, n * sizeof(cl_int));
+                    for (c = 0; c < n; ++c) t[ii + c] = 1;
                     break;
                 }
             }
@@ -3484,82 +3540,82 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
     error |= test<cl_uint4, BALLOT3<cl_uint4, 2>, G, L>::run(device, context, queue, num_elements, "test_sub_group_ballot_exclusive_scan", ballot_exclusive_scan_source, 0, required_extensions);
     error |= test<cl_uint4, BALLOT3<cl_uint4, 3>, G, L>::run(device, context, queue, num_elements, "test_sub_group_ballot_find_lsb", ballot_find_lsb_source, 0, required_extensions);
     error |= test<cl_uint4, BALLOT3<cl_uint4, 4>, G, L>::run(device, context, queue, num_elements, "test_sub_group_ballot_find_msb", ballot_find_msb_source, 0, required_extensions);
-    
+
     required_extensions = { "cl_khr_subgroup_non_uniform_arithmetic" };
-    error |= test<cl_int, SCIN_NU<cl_int, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
-    error |= test<cl_uint, SCIN_NU<cl_uint, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
-    error |= test<cl_long, SCIN_NU<cl_long, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
-    error |= test<cl_ulong, SCIN_NU<cl_ulong, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
-    error |= test<cl_short, SCIN_NU<cl_short, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
-    error |= test<cl_ushort, SCIN_NU<cl_ushort, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
-    error |= test<cl_char, SCIN_NU<cl_char, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
-    error |= test<cl_uchar, SCIN_NU<cl_uchar, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
-    error |= test<cl_float, SCIN_NU<cl_float, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
-    error |= test<cl_double, SCIN_NU<cl_double, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
+    error |= test<cl_int, SCIN_NU_AM<cl_int, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
+    error |= test<cl_uint, SCIN_NU_AM<cl_uint, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
+    error |= test<cl_long, SCIN_NU_AM<cl_long, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
+    error |= test<cl_ulong, SCIN_NU_AM<cl_ulong, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
+    error |= test<cl_short, SCIN_NU_AM<cl_short, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
+    error |= test<cl_ushort, SCIN_NU_AM<cl_ushort, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
+    error |= test<cl_char, SCIN_NU_AM<cl_char, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
+    error |= test<cl_uchar, SCIN_NU_AM<cl_uchar, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
+    error |= test<cl_float, SCIN_NU_AM<cl_float, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
+    error |= test<cl_double, SCIN_NU_AM<cl_double, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
     //error |= test<subgroups::cl_half, SCIN_NU<subgroups::cl_half, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
 
-    error |= test<cl_int, SCIN_NU<cl_int, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
-    error |= test<cl_uint, SCIN_NU<cl_uint, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
-    error |= test<cl_long, SCIN_NU<cl_long, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
-    error |= test<cl_ulong, SCIN_NU<cl_ulong, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
-    error |= test<cl_short, SCIN_NU<cl_short, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
-    error |= test<cl_ushort, SCIN_NU<cl_ushort, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
-    error |= test<cl_char, SCIN_NU<cl_char, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
-    error |= test<cl_uchar, SCIN_NU<cl_uchar, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
-    error |= test<cl_float, SCIN_NU<cl_float, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
-    error |= test<cl_double, SCIN_NU<cl_double, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
+    error |= test<cl_int, SCIN_NU_AM<cl_int, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
+    error |= test<cl_uint, SCIN_NU_AM<cl_uint, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
+    error |= test<cl_long, SCIN_NU_AM<cl_long, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
+    error |= test<cl_ulong, SCIN_NU_AM<cl_ulong, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
+    error |= test<cl_short, SCIN_NU_AM<cl_short, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
+    error |= test<cl_ushort, SCIN_NU_AM<cl_ushort, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
+    error |= test<cl_char, SCIN_NU_AM<cl_char, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
+    error |= test<cl_uchar, SCIN_NU_AM<cl_uchar, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
+    error |= test<cl_float, SCIN_NU_AM<cl_float, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
+    error |= test<cl_double, SCIN_NU_AM<cl_double, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
     //error |= test<subgroups::cl_half, SCIN_NU<subgroups::cl_half, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
 
-    error |= test<cl_int, SCIN_NU<cl_int, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
-    error |= test<cl_uint, SCIN_NU<cl_uint, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
-    error |= test<cl_long, SCIN_NU<cl_long, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
-    error |= test<cl_ulong, SCIN_NU<cl_ulong, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
-    error |= test<cl_short, SCIN_NU<cl_short, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
-    error |= test<cl_ushort, SCIN_NU<cl_ushort, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
-    error |= test<cl_char, SCIN_NU<cl_char, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
-    error |= test<cl_uchar, SCIN_NU<cl_uchar, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
-    error |= test<cl_float, SCIN_NU<cl_float, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
-    error |= test<cl_double, SCIN_NU<cl_double, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
+    error |= test<cl_int, SCIN_NU_AM<cl_int, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
+    error |= test<cl_uint, SCIN_NU_AM<cl_uint, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
+    error |= test<cl_long, SCIN_NU_AM<cl_long, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
+    error |= test<cl_ulong, SCIN_NU_AM<cl_ulong, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
+    error |= test<cl_short, SCIN_NU_AM<cl_short, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
+    error |= test<cl_ushort, SCIN_NU_AM<cl_ushort, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
+    error |= test<cl_char, SCIN_NU_AM<cl_char, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
+    error |= test<cl_uchar, SCIN_NU_AM<cl_uchar, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
+    error |= test<cl_float, SCIN_NU_AM<cl_float, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
+    error |= test<cl_double, SCIN_NU_AM<cl_double, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
     //error |= test<subgroups::cl_half, SCIN_NU<subgroups::cl_half, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
 
-    error |= test<cl_int, SCIN_NU<cl_int, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
-    error |= test<cl_uint, SCIN_NU<cl_uint, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
-    error |= test<cl_long, SCIN_NU<cl_long, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
-    error |= test<cl_ulong, SCIN_NU<cl_ulong, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
-    error |= test<cl_short, SCIN_NU<cl_short, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
-    error |= test<cl_ushort, SCIN_NU<cl_ushort, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
-    error |= test<cl_char, SCIN_NU<cl_char, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
-    error |= test<cl_uchar, SCIN_NU<cl_uchar, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
-    error |= test<cl_float, SCIN_NU<cl_float, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
-    error |= test<cl_double, SCIN_NU<cl_double, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
+    error |= test<cl_int, SCIN_NU_AM<cl_int, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
+    error |= test<cl_uint, SCIN_NU_AM<cl_uint, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
+    error |= test<cl_long, SCIN_NU_AM<cl_long, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
+    error |= test<cl_ulong, SCIN_NU_AM<cl_ulong, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
+    error |= test<cl_short, SCIN_NU_AM<cl_short, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
+    error |= test<cl_ushort, SCIN_NU_AM<cl_ushort, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
+    error |= test<cl_char, SCIN_NU_AM<cl_char, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
+    error |= test<cl_uchar, SCIN_NU_AM<cl_uchar, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
+    error |= test<cl_float, SCIN_NU_AM<cl_float, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
+    error |= test<cl_double, SCIN_NU_AM<cl_double, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
     //error |= test<subgroups::cl_half, SCIN_NU<subgroups::cl_half, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
 
-    error |= test<cl_int, SCIN_NU<cl_int, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
-    error |= test<cl_uint, SCIN_NU<cl_uint, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
-    error |= test<cl_long, SCIN_NU<cl_long, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
-    error |= test<cl_ulong, SCIN_NU<cl_ulong, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
-    error |= test<cl_short, SCIN_NU<cl_short, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
-    error |= test<cl_ushort, SCIN_NU<cl_ushort, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
-    error |= test<cl_char, SCIN_NU<cl_char, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
-    error |= test<cl_uchar, SCIN_NU<cl_uchar, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
+    error |= test<cl_int, SCIN_NU_BW<cl_int, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
+    error |= test<cl_uint, SCIN_NU_BW<cl_uint, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
+    error |= test<cl_long, SCIN_NU_BW<cl_long, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
+    error |= test<cl_ulong, SCIN_NU_BW<cl_ulong, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
+    error |= test<cl_short, SCIN_NU_BW<cl_short, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
+    error |= test<cl_ushort, SCIN_NU_BW<cl_ushort, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
+    error |= test<cl_char, SCIN_NU_BW<cl_char, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
+    error |= test<cl_uchar, SCIN_NU_BW<cl_uchar, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
 
-    error |= test<cl_int, SCIN_NU<cl_int, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
-    error |= test<cl_uint, SCIN_NU<cl_uint, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
-    error |= test<cl_long, SCIN_NU<cl_long, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
-    error |= test<cl_ulong, SCIN_NU<cl_ulong, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
-    error |= test<cl_short, SCIN_NU<cl_short, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
-    error |= test<cl_ushort, SCIN_NU<cl_ushort, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
-    error |= test<cl_char, SCIN_NU<cl_char, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
-    error |= test<cl_uchar, SCIN_NU<cl_uchar, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_int, SCIN_NU_BW<cl_int, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_uint, SCIN_NU_BW<cl_uint, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_long, SCIN_NU_BW<cl_long, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_ulong, SCIN_NU_BW<cl_ulong, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_short, SCIN_NU_BW<cl_short, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_ushort, SCIN_NU_BW<cl_ushort, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_char, SCIN_NU_BW<cl_char, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_uchar, SCIN_NU_BW<cl_uchar, 5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform", scinor_non_uniform_source, 0, required_extensions);
 
-    error |= test<cl_int, SCIN_NU<cl_int, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
-    error |= test<cl_uint, SCIN_NU<cl_uint, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
-    error |= test<cl_long, SCIN_NU<cl_long, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
-    error |= test<cl_ulong, SCIN_NU<cl_ulong, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
-    error |= test<cl_short, SCIN_NU<cl_short, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
-    error |= test<cl_ushort, SCIN_NU<cl_ushort, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
-    error |= test<cl_char, SCIN_NU<cl_char, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
-    error |= test<cl_uchar, SCIN_NU<cl_uchar, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_int, SCIN_NU_BW<cl_int, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_uint, SCIN_NU_BW<cl_uint, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_long, SCIN_NU_BW<cl_long, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_ulong, SCIN_NU_BW<cl_ulong, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_short, SCIN_NU_BW<cl_short, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_ushort, SCIN_NU_BW<cl_ushort, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_char, SCIN_NU_BW<cl_char, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
+    error |= test<cl_uchar, SCIN_NU_BW<cl_uchar, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
 
     error |= test<cl_int, SCIN_NU_LG<4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform_logical", scinand_non_uniform_logical_source, 0, required_extensions);
     error |= test<cl_int, SCIN_NU_LG<5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform_logical", scinor_non_uniform_logical_source, 0, required_extensions);
