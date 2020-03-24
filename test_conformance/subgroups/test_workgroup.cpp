@@ -3171,7 +3171,7 @@ struct BALLOT3 {
                         if (max_id == -1) {
                             max_id = 0;
                         }
-                        Which == 3 ? tr = { min_id, 0, 0, 0 } : tr = { max_id, 0, 0, 0 };
+                        Which == 3 ? tr = { (cl_uint) min_id, 0, 0, 0 } : tr = { (cl_uint) max_id, 0, 0, 0 };
                         if (!compare(rr, tr)) {
                             log_error("ERROR: sub_group_ballot_%s mismatch for local id %d in sub group %d in group %d obtained {%d, %d, %d, %d}, expected {%d, %d, %d, %d}\n", Which == 3 ? "find_lsb" : "find_msb", i, j, k, rr.s0, rr.s1, rr.s2, rr.s3, tr.s0, tr.s1, tr.s2, tr.s3);
                             return -1;
