@@ -930,7 +930,7 @@ struct test {
         error = get_max_common_work_group_size(context, kernel, GSIZE, &local);
         test_error(error, "get_max_common_work_group_size failed");
 
-        // Limit it a bit so we have muliple work groups
+        // Limit it a bit so we have multiple work groups
         // Ideally this will still be large enough to give us multiple subgroups
         if (local > LSIZE)
             local = LSIZE;
