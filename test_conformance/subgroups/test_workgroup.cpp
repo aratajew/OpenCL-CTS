@@ -3779,7 +3779,7 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
     error |= test<cl_uchar, SHF<cl_uchar, 0>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle", shuffle_source, 0, required_extensions);
     error |= test<cl_float, SHF<cl_float, 0>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle", shuffle_source, 0, required_extensions);
     error |= test<cl_double, SHF<cl_double, 0>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle", shuffle_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, SHF<subgroups::cl_half, 0>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle", shuffle_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, SHF<subgroups::cl_half, 0>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle", shuffle_source, 0, required_extensions);
 
     error |= test<cl_int, SHF<cl_int, 3>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_xor", shuffle_xor_source, 0, required_extensions);
     error |= test<cl_uint, SHF<cl_uint, 3>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_xor", shuffle_xor_source, 0, required_extensions);
@@ -3791,7 +3791,7 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
     error |= test<cl_uchar, SHF<cl_uchar, 3>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_xor", shuffle_xor_source, 0, required_extensions);
     error |= test<cl_float, SHF<cl_float, 3>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_xor", shuffle_xor_source, 0, required_extensions);
     error |= test<cl_double, SHF<cl_double, 3>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_xor", shuffle_xor_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, SHF<subgroups::cl_half, 3>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_xor", shuffle_xor_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, SHF<subgroups::cl_half, 3>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_xor", shuffle_xor_source, 0, required_extensions);
 
     required_extensions = { "cl_khr_subgroup_shuffle_relative" };
     error |= test<cl_int, SHF<cl_int, 1>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_up", shuffle_up_source, 0, required_extensions);
@@ -3804,7 +3804,7 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
     error |= test<cl_uchar, SHF<cl_uchar, 1>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_up", shuffle_up_source, 0, required_extensions);
     error |= test<cl_float, SHF<cl_float, 1>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_up", shuffle_up_source, 0, required_extensions);
     error |= test<cl_double, SHF<cl_double, 1>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_up", shuffle_up_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, SHF<subgroups::cl_half, 1>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_up", shuffle_up_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, SHF<subgroups::cl_half, 1>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_up", shuffle_up_source, 0, required_extensions);
 
     error |= test<cl_int, SHF<cl_int, 2>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_down", shuffle_down_source, 0, required_extensions);
     error |= test<cl_uint, SHF<cl_uint, 2>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle_down", shuffle_down_source, 0, required_extensions);
