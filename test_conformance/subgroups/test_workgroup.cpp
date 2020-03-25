@@ -642,7 +642,7 @@ static const char * redadd_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    Type x = sub_group_reduce_clustered_add(in[gid], xy[gid].z);"
+"    Type x = sub_group_clustered_reduce_add(in[gid], xy[gid].z);"
 "    out[gid] = x ;\n"
 
 //"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
@@ -653,7 +653,7 @@ static const char * redmax_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_max(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_max(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redmin_clustered_source =
@@ -661,7 +661,7 @@ static const char * redmin_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_min(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_min(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redmul_clustered_source =
@@ -669,7 +669,7 @@ static const char * redmul_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_mul(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_mul(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redand_clustered_source =
@@ -677,7 +677,7 @@ static const char * redand_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_and(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_and(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redor_clustered_source =
@@ -685,7 +685,7 @@ static const char * redor_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_or(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_or(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redxor_clustered_source =
@@ -693,7 +693,7 @@ static const char * redxor_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_xor(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_xor(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redand_clustered_logical_source =
@@ -701,7 +701,7 @@ static const char * redand_clustered_logical_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_logical_and(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_logical_and(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redor_clustered_logical_source =
@@ -709,7 +709,7 @@ static const char * redor_clustered_logical_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_logical_or(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_logical_or(in[gid], xy[gid].z);\n"
 "}\n";
 
 static const char * redxor_clustered_logical_source =
@@ -717,7 +717,7 @@ static const char * redxor_clustered_logical_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_reduce_clustered_logical_xor(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_logical_xor(in[gid], xy[gid].z);\n"
 "}\n";
 
 // These need to stay in sync with the kernel source below
@@ -1672,7 +1672,7 @@ struct RED_CLU {
             size_to_copy = sizeof(cl_long);
         }
 
-        log_info("  sub_group_reduce_clustered_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val());
+        log_info("  sub_group_clustered_reduce_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val());
 
         for (k = 0; k < ng; ++k) {
             // Map to array indexed to array indexed by local ID and sub group
@@ -1744,7 +1744,7 @@ struct RED_CLU {
                     }
                     tr = clusters_results[cluster_id];
                     if (rr != tr) {
-                        log_error("ERROR: sub_group_reduce_clustered_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
+                        log_error("ERROR: sub_group_clustered_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
                             Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val(), i, j, k, rr, tr);
                         return -1;
                     }
@@ -1761,7 +1761,7 @@ struct RED_CLU {
 };
 
 // DESCRIPTION:
-// Test for reduction clustered logical functions
+// Test for clustered reduction logical functions
 // Which: 4 - and, 5 - or, 6 - xor
 template <int Which>
 struct RED_CLU_LG {
@@ -1820,7 +1820,7 @@ struct RED_CLU_LG {
         int nj = (nw + ns - 1) / ns;
         cl_int tr, rr;
 
-        log_info("  sub_group_reduce_clustered_logical_%s...\n", Which == 4 ? "and" : (Which == 5 ? "or" : "xor"));
+        log_info("  sub_group_clustered_reduce_logical_%s...\n", Which == 4 ? "and" : (Which == 5 ? "or" : "xor"));
 
         for (k = 0; k < ng; ++k) {          // for each work_group
             // Map to array indexed to array indexed by local ID and sub group
@@ -1856,7 +1856,7 @@ struct RED_CLU_LG {
                         tr ^= mx[ii + i];
                     }
                     else {
-                        log_error("ERROR: sub_group_reduce_clustered_logical - unknown function type number");
+                        log_error("ERROR: sub_group_clustered_reduce_logical - unknown function type number");
                         return -1;
                     }
 
@@ -1873,7 +1873,7 @@ struct RED_CLU_LG {
                     tr = clusters_results[cluster_id];
 
                     if (rr != tr) {
-                        log_error("ERROR: sub_group_reduce_clustered_logical_%s mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
+                        log_error("ERROR: sub_group_clustered_reduce_logical_%s mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
                             (Which == 4 ? "add" : Which == 5 ? "and" : (Which == 6 ? "or" : "xor")), i, j, k, rr, tr);
                         return -1;
                     }
