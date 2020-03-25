@@ -878,14 +878,14 @@ struct SHF {
 
                     if (Which == 2) {
                         delta = l; // calculate delta for shuffle down
-                        if (i + delta > n) {
-                            delta = n - i;
+                        if (i + delta >= n) {
+                            delta = n - 1 - i;
                         }
                         m[midx] = (cl_int)delta;
                     }
 
                     cl_uint number;
-                    number = (int)(genrand_int32(gMTdata) & 0x7fffffff); // calculate vlue for shuffle function
+                    number = (int)(genrand_int32(gMTdata) & 0x7fffffff); // calculate value for shuffle function
                     set_value(t[ii + i], number);
                     //log_info("wg = %d ,sg = %d, inside sg = %d, number == %d, l = %d, midx = %d\n", k, j, i, number, l, midx);
                 }
@@ -925,7 +925,7 @@ struct SHF {
                     l = (int)m[midx];
                     rr = my[ii + i];
                     if (Which == 0) {
-                        tr = mx[ii + l];        //shuffle basic/xor - treat l as index
+                        tr = mx[ii + l];        //shuffle basic - treat l as index
                     }
                     if (Which == 1) {
                         tr = mx[ii + i - l];    //shuffle up - treat l as delta
