@@ -853,7 +853,7 @@ template <typename Ty, int Which = 0>
 struct SHF {
     static void gen(Ty *x, Ty *t, cl_int *m, int ns, int nw, int ng)
     {
-        int i, ii, j, k, l, n, delta, mask;
+        int i, ii, j, k, l, n, delta;
         int nj = (nw + ns - 1) / ns;
         int d = ns > 100 ? 100 : ns;
         ii = 0;
@@ -864,7 +864,7 @@ struct SHF {
                 for (i = 0; i < n; ++i) {
                     int midx = 4 * ii + 4 * i + 2;
                     l = (int)(genrand_int32(gMTdata) & 0x7fffffff) % (d > n ? n : d);
-                    if (Which == 0) {
+                    if (Which == 0 || Which == 3) {
                         m[midx] = (cl_int)l; // storing information about shuffle index
                     }
 
@@ -882,11 +882,6 @@ struct SHF {
                             delta = n - i;
                         }
                         m[midx] = (cl_int)delta;
-                    }
-                    if (Which == 3) {
-                        mask = l; // claculate mask for shuffle xor
-                        mask ^= i;
-                        m[midx] = (cl_int)mask;
                     }
 
                     cl_uint number;
@@ -907,7 +902,7 @@ struct SHF {
 
     static int chk(Ty *x, Ty *y, Ty *mx, Ty *my, cl_int *m, int ns, int nw, int ng)
     {
-        int ii, i, j, k, l, n, delta, mask;
+        int ii, i, j, k, l, n, delta;
         int nj = (nw + ns - 1) / ns;
         Ty tr, rr;
 
@@ -929,15 +924,17 @@ struct SHF {
                     int midx = 4 * ii + 4 * i + 2; // shuffle index storage
                     l = (int)m[midx];
                     rr = my[ii + i];
-                    if (Which == 0 || Which == 3) {
+                    if (Which == 0) {
                         tr = mx[ii + l];        //shuffle basic/xor - treat l as index
                     }
                     if (Which == 1) {
                         tr = mx[ii + i - l];    //shuffle up - treat l as delta
                     }
-
                     if (Which == 2) {
                         tr = mx[ii + i + l];    //shuffle down - treat l as delta
+                    }
+                    if (Which == 3) {
+                        tr = mx[ii + (i ^ l)];  //shuffle xor - treat l as mask
                     }
 
                     if (!compare(rr, tr)) {
