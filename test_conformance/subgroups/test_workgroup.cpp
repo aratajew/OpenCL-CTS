@@ -19,6 +19,9 @@
 #include "harness/typeWrappers.h"
 #include <bitset>
 
+#define CLUSTER_SIZE 4
+#define CLUSTER_SIZE_STR "4"
+
 static const char * ballot_source =
 "__kernel void test_sub_group_ballot(const __global Type *in, __global int4 *xy, __global Type *out)\n"
 "{\n"
@@ -642,10 +645,8 @@ static const char * redadd_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    Type x = sub_group_clustered_reduce_add(in[gid], xy[gid].z);"
-"    out[gid] = x ;\n"
-
-//"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
+"    out[gid] = sub_group_clustered_reduce_add(in[gid], " CLUSTER_SIZE_STR ");\n"
+//"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d\\n\", gid, xy[gid].x, xy[gid].y, in[gid], xy[gid].z, out[gid]);"
 "}\n";
 
 static const char * redmax_clustered_source =
@@ -653,7 +654,7 @@ static const char * redmax_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_clustered_reduce_max(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_max(in[gid], " CLUSTER_SIZE_STR ");\n"
 "}\n";
 
 static const char * redmin_clustered_source =
@@ -661,7 +662,7 @@ static const char * redmin_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_clustered_reduce_min(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_min(in[gid], " CLUSTER_SIZE_STR ");\n"
 "}\n";
 
 static const char * redmul_clustered_source =
@@ -669,7 +670,7 @@ static const char * redmul_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_clustered_reduce_mul(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_mul(in[gid], " CLUSTER_SIZE_STR ");\n"
 "}\n";
 
 static const char * redand_clustered_source =
@@ -677,7 +678,7 @@ static const char * redand_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_clustered_reduce_and(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_and(in[gid], " CLUSTER_SIZE_STR ");\n"
 "}\n";
 
 static const char * redor_clustered_source =
@@ -685,7 +686,7 @@ static const char * redor_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_clustered_reduce_or(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_or(in[gid], " CLUSTER_SIZE_STR ");\n"
 "}\n";
 
 static const char * redxor_clustered_source =
@@ -693,31 +694,31 @@ static const char * redxor_clustered_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_clustered_reduce_xor(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_xor(in[gid], " CLUSTER_SIZE_STR ");\n"
 "}\n";
 
 static const char * redand_clustered_logical_source =
-"__kernel void test_redand_clustered(const __global Type *in, __global int4 *xy, __global Type *out)\n"
+"__kernel void test_redand_clustered_logical(const __global Type *in, __global int4 *xy, __global Type *out)\n"
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_clustered_reduce_logical_and(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_logical_and(in[gid], " CLUSTER_SIZE_STR ");\n"
 "}\n";
 
 static const char * redor_clustered_logical_source =
-"__kernel void test_redor_clustered(const __global Type *in, __global int4 *xy, __global Type *out)\n"
+"__kernel void test_redor_clustered_logical(const __global Type *in, __global int4 *xy, __global Type *out)\n"
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_clustered_reduce_logical_or(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_logical_or(in[gid], " CLUSTER_SIZE_STR ");\n"
 "}\n";
 
 static const char * redxor_clustered_logical_source =
-"__kernel void test_redxor_clustered(const __global Type *in, __global int4 *xy, __global Type *out)\n"
+"__kernel void test_redxor_clustered_logical(const __global Type *in, __global int4 *xy, __global Type *out)\n"
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    out[gid] = sub_group_clustered_reduce_logical_xor(in[gid], xy[gid].z);\n"
+"    out[gid] = sub_group_clustered_reduce_logical_xor(in[gid], " CLUSTER_SIZE_STR ");\n"
 "}\n";
 
 // These need to stay in sync with the kernel source below
@@ -1602,38 +1603,43 @@ struct RED_NU_LG {
 
 // DESCRIPTION:
 // Test for reduce cluster functions
-// Which: 0 - add, 1 - max, 2 - min, 3 - mul, 4 - and, 5 - or, 6 - xor
+// Which: 0 - add, 1 - max, 2 - min, 3 - mul, 4 - and, 5 - or, 6 - xor, 7 - logical and, 8 - logical or, 9 - logical xor
+template <typename Ty, int Which>
+struct RED_OP;
+
+template <typename Ty> struct RED_OP<Ty, 0> { static Ty calculate(Ty a, Ty b) { return a + b; } };
+template <typename Ty> struct RED_OP<Ty, 1> { static Ty calculate(Ty a, Ty b) { return a > b ? a : b; } };
+template <typename Ty> struct RED_OP<Ty, 2> { static Ty calculate(Ty a, Ty b) { return a < b ? a : b; } };
+template <typename Ty> struct RED_OP<Ty, 3> { static Ty calculate(Ty a, Ty b) { return a * b; } };
+template <typename Ty> struct RED_OP<Ty, 4> { static Ty calculate(Ty a, Ty b) { return a & b; } };
+template <typename Ty> struct RED_OP<Ty, 5> { static Ty calculate(Ty a, Ty b) { return a | b; } };
+template <typename Ty> struct RED_OP<Ty, 6> { static Ty calculate(Ty a, Ty b) { return a ^ b; } };
+template <typename Ty> struct RED_OP<Ty, 7> { static Ty calculate(Ty a, Ty b) { return a && b; } };
+template <typename Ty> struct RED_OP<Ty, 8> { static Ty calculate(Ty a, Ty b) { return a || b; } };
+template <typename Ty> struct RED_OP<Ty, 9> { static Ty calculate(Ty a, Ty b) { return !a ^ !b; } };
+
 template <typename Ty, int Which>
 struct RED_CLU {
-    static void gen(Ty *x, Ty *t, cl_int *m, int ns, int nw, int ng, int a=0)
+    static void gen(Ty *x, Ty *t, cl_int *m, int ns, int nw, int ng)
     {
-        int i, ii, j, k, n, cluster_index;
         int nj = (nw + ns - 1) / ns;
 
-        ii = 0;
-        std::vector<unsigned int> cluster_values;
-        for (int c = 2; c <= ns; c = c << 1) {
-            cluster_values.push_back(c);
-        }
+        for (int k = 0; k < ng; ++k) {
+            for (int j = 0; j < nj; ++j) {
+                int ii = j * ns;
+                int n = ii + ns > nw ? nw - ii : ns;
 
-        for (k = 0; k < ng; ++k) {
-            for (j = 0; j < nj; ++j) {
-                ii = j * ns;
-                n = ii + ns > nw ? nw - ii : ns;
-
-                cluster_index = (int)(genrand_int32(gMTdata) & 0x7fffffff) % cluster_values.size(); //randomize cluster size
-
-                for (i = 0; i < n; ++i) {
-                    int midx = 4 * ii + 4 * i + 2;
-                    m[midx] = cluster_values[cluster_index];           // the third index - store information about cluster size
-                    t[ii + i] = (Ty)((int)(genrand_int32(gMTdata) & 0x7fffffff) % ns + 1);
+                for (int i = 0; i < n; ++i) {
+                    int x = (int)(genrand_int32(gMTdata) & 0x7fffffff) % ns + 1;
+                    if (Which >= 7 && Which <= 9 && (x & 4) == 0)
+                        x = 0; // increase probability of false
+                    t[ii + i] = (Ty) x;
                 }
-
             }
 
             // Now map into work group using map from device
-            for (j = 0; j < nw; ++j) {
-                i = m[4 * j + 1] * ns + m[4 * j];
+            for (int j = 0; j < nw; ++j) {
+                int i = m[4 * j + 1] * ns + m[4 * j];
                 x[j] = t[i];
             }
 
@@ -1642,110 +1648,47 @@ struct RED_CLU {
         }
     }
 
-    static int chk(Ty *x, Ty *y, Ty *mx, Ty *my, cl_int *m, int ns, int nw, int ng, int a = 0)
+    static int chk(Ty *x, Ty *y, Ty *mx, Ty *my, cl_int *m, int ns, int nw, int ng)
     {
-        int ii, i, j, k, n, cluster_size;
+        static const char * const op_names[] = { "add", "max", "min", "mul", "and", "or", "xor", "logical_and", "logical_or", "logical_xor" };
         int nj = (nw + ns - 1) / ns;
-        Ty tr, rr, trt;
-        uint64_t val1 = 0;
-        uint64_t val2 = 0;
-        size_t size_to_copy = 0;
-        if (strstr(TypeDef<Ty>::val(), "double")) {
-            size_to_copy = sizeof(uint64_t);
-        }
-        if (strstr(TypeDef<Ty>::val(), "float")) {
-            size_to_copy = sizeof(uint32_t);
-        }
-        if (strstr(TypeDef<Ty>::val(), "half")) {
-            size_to_copy = sizeof(uint16_t);
-        }
-        if (strstr(TypeDef<Ty>::val(), "int")) {
-            size_to_copy = sizeof(cl_int);
-        }
-        if (strstr(TypeDef<Ty>::val(), "short")) {
-            size_to_copy = sizeof(cl_short);
-        }
-        if (strstr(TypeDef<Ty>::val(), "char")) {
-            size_to_copy = sizeof(cl_char);
-        }
-        if (strstr(TypeDef<Ty>::val(), "long")) {
-            size_to_copy = sizeof(cl_long);
-        }
 
-        log_info("  sub_group_clustered_reduce_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val());
+        log_info("  sub_group_clustered_reduce_%s(%s)...\n", op_names[Which], TypeName<Ty>::val());
 
-        for (k = 0; k < ng; ++k) {
+        for (int k = 0; k < ng; ++k) {
             // Map to array indexed to array indexed by local ID and sub group
-            for (j = 0; j < nw; ++j) {
-                i = m[4 * j + 1] * ns + m[4 * j];
+            for (int j = 0; j < nw; ++j) {
+                int i = m[4 * j + 1] * ns + m[4 * j];
                 mx[i] = x[j];
                 my[i] = y[j];
             }
 
-            for (j = 0; j < nj; ++j) {
-                ii = j * ns;
-                n = ii + ns > nw ? nw - ii : ns;
+            for (int j = 0; j < nj; ++j) {
+                int ii = j * ns;
+                int n = ii + ns > nw ? nw - ii : ns;
                 int midx = 4 * ii + 2;
-                cluster_size = (int)m[midx];  // which cluster size for this subgroup.
                 std::vector<Ty> clusters_results;
-                int clusters_counter = ns/cluster_size;
+                int clusters_counter = ns / CLUSTER_SIZE;
                 clusters_results.resize(clusters_counter);
+
                 // Compute target
-
-                tr = mx[ii];
-                int cluster_id = 0;
-                for (i = 1; i < n; ++i) {
-                    if ((i + 1) % cluster_size == 1) {
+                Ty tr = mx[ii];
+                for (int i = 0; i < n; ++i) {
+                    //log_info("i=%d mx=%d my=%d cluster_size=%d\n", i, mx[ii + i], my[ii + i], cluster_size);
+                    if (i % CLUSTER_SIZE == 0)
                         tr = mx[ii + i];
-                        cluster_id++;
-                    }
-                    if (Which == 0) {           // function add
-                        tr += mx[ii + i];
-                    }
-                    else if (Which == 1) {      // function max
-                        tr = tr > mx[ii + i] ? tr : mx[ii + i];
-                    }
-                    else if (Which == 2) {      // function min
-                        tr = tr > mx[ii + i] ? mx[ii + i] : tr;
-                    }
-                    else if (Which == 3) {      // function mul
-                        tr *= mx[ii + i];
-                    }
-                    else if (Which == 4) {      // function and
-                        trt = mx[ii + i];
-                        std::memcpy(&val1, &tr, size_to_copy);
-                        std::memcpy(&val2, &trt, size_to_copy);
-                        tr = val1 & val2;
-                    }
-                    else if (Which == 5) {      // function or
-                        trt = mx[ii + i];
-                        std::memcpy(&val1, &tr, size_to_copy);
-                        std::memcpy(&val2, &trt, size_to_copy);
-                        tr = val1 | val2;
-                    }
-                    else if (Which == 6) {      // function xor
-                        trt = mx[ii + i];
-                        std::memcpy(&val1, &tr, size_to_copy);
-                        std::memcpy(&val2, &trt, size_to_copy);
-                        tr = val1 ^ val2;
-                    }
-                    if ((i + 1) % cluster_size == 0) {
-                        clusters_results[cluster_id] = tr;
-                    }
-
+                    else
+                        tr = RED_OP<Ty, Which>::calculate(tr, mx[ii + i]);
+                    clusters_results[i / CLUSTER_SIZE] = tr;
                 }
 
                 // Check result
-                cluster_id = -1;
-                for (i = 0; i < n; ++i) {
-                    rr = my[ii + i];
-                    if ((i + 1) % cluster_size == 1) {
-                        cluster_id++;
-                    }
-                    tr = clusters_results[cluster_id];
+                for (int i = 0; i < n; ++i) {
+                    Ty rr = my[ii + i];
+                    tr = clusters_results[i / CLUSTER_SIZE];
                     if (rr != tr) {
-                        log_error("ERROR: sub_group_clustered_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
-                            Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val(), i, j, k, rr, tr);
+                        log_error("ERROR: sub_group_clustered_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d, expected %d\n",
+                            op_names[Which], TypeName<Ty>::val(), i, j, k, rr, tr);
                         return -1;
                     }
                 }
@@ -1756,133 +1699,6 @@ struct RED_CLU {
             m += 4 * nw;
         }
 
-        return 0;
-    }
-};
-
-// DESCRIPTION:
-// Test for clustered reduction logical functions
-// Which: 4 - and, 5 - or, 6 - xor
-template <int Which>
-struct RED_CLU_LG {
-    static void gen(cl_int *x, cl_int *t, cl_int *m, int ns, int nw, int ng)
-    {
-        int i, ii, j, k, n, cluster_index;
-        int nj = (nw + ns - 1) / ns;
-        int e;
-        ii = 0;
-        std::vector<unsigned int> cluster_values;
-        for (int c = 2; c <= ns; c = c << 1) {
-            cluster_values.push_back(c);
-        }
-
-        for (k = 0; k < ng; ++k) {          // for each work_group
-            for (j = 0; j < nj; ++j) {      // for each subgroup
-                ii = j * ns;
-                n = ii + ns > nw ? nw - ii : ns;
-                e = (int)(genrand_int32(gMTdata) % 3);
-                cluster_index = (int)(genrand_int32(gMTdata) & 0x7fffffff) % cluster_values.size(); //randomize cluster size
-
-                // Initialize data matrix indexed by local id and sub group id
-                for (i = 0; i < n; ++i) {
-                    int midx = 4 * ii + 4 * i + 2;
-                    m[midx] = cluster_values[cluster_index];           // the third index - store information about cluster size
-                }
-                switch (e) {
-                case 0:
-                    memset(&t[ii], 0, n * sizeof(cl_int));
-                    break;
-                case 1:
-                    memset(&t[ii], 0, n * sizeof(cl_int));
-                    i = (int)(genrand_int32(gMTdata) % (cl_uint)n);
-                    t[ii + i] = 41;
-                    break;
-                case 2:
-                    memset(&t[ii], 0xff, n * sizeof(cl_int));
-                    break;
-                }
-            }
-
-            // Now map into work group using map from device
-            for (j = 0; j < nw; ++j) {
-                i = m[4 * j + 1] * ns + m[4 * j];
-                x[j] = t[i];
-            }
-
-            x += nw;
-            m += 4 * nw;
-        }
-    }
-
-    static int chk(cl_int *x, cl_int *y, cl_int *mx, cl_int *my, cl_int *m, int ns, int nw, int ng)
-    {
-        int ii, i, j, k, n, cluster_size;
-        int nj = (nw + ns - 1) / ns;
-        cl_int tr, rr;
-
-        log_info("  sub_group_clustered_reduce_logical_%s...\n", Which == 4 ? "and" : (Which == 5 ? "or" : "xor"));
-
-        for (k = 0; k < ng; ++k) {          // for each work_group
-            // Map to array indexed to array indexed by local ID and sub group
-            for (j = 0; j < nw; ++j) {      // inside the work_group
-                i = m[4 * j + 1] * ns + m[4 * j];
-                mx[i] = x[j];               // read host inputs for work_group
-                my[i] = y[j];               // read host inputs for work_group
-            }
-
-            for (j = 0; j < nj; ++j) {      // for each subgroup
-                ii = j * ns;
-                n = ii + ns > nw ? nw - ii : ns;
-                int midx = 4 * ii + 2;
-                cluster_size = (int)m[midx];  // which cluster size for this subgroup.
-                std::vector<cl_int> clusters_results;
-                int clusters_counter = ns / cluster_size;
-                clusters_results.resize(clusters_counter);
-                tr = mx[ii];
-                int cluster_id = 0;
-                // Check result
-                for (i = 1; i < n; ++i) {   // for each subgroup
-                    if ((i + 1) % cluster_size == 1) {
-                        tr = mx[ii + i];
-                        cluster_id++;
-                    }
-                    if (Which == 4) {       // function and
-                        tr &= mx[ii + i];
-                    }
-                    else if (Which == 5) {  // function or
-                        tr |= mx[ii + i];
-                    }
-                    else if (Which == 6) {  // function xor
-                        tr ^= mx[ii + i];
-                    }
-                    else {
-                        log_error("ERROR: sub_group_clustered_reduce_logical - unknown function type number");
-                        return -1;
-                    }
-
-                    if ((i + 1) % cluster_size == 0) {
-                        clusters_results[cluster_id] = tr;
-                    }
-                }
-                cluster_id = -1;
-                for (i = 0; i < n; ++i) {
-                    rr = my[ii + i];
-                    if ((i + 1) % cluster_size == 1) {
-                        cluster_id++;
-                    }
-                    tr = clusters_results[cluster_id];
-
-                    if (rr != tr) {
-                        log_error("ERROR: sub_group_clustered_reduce_logical_%s mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
-                            (Which == 4 ? "add" : Which == 5 ? "and" : (Which == 6 ? "or" : "xor")), i, j, k, rr, tr);
-                        return -1;
-                    }
-                }
-            }
-            x += nw;
-            y += nw;
-            m += 4 * nw;
-        }
         return 0;
     }
 };
@@ -3764,9 +3580,9 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
     error |= test<cl_char, RED_CLU<cl_char, 6>, G, L>::run(device, context, queue, num_elements, "test_redxor_clustered", redxor_clustered_source, 0, required_extensions);
     error |= test<cl_uchar, RED_CLU<cl_uchar, 6>, G, L>::run(device, context, queue, num_elements, "test_redxor_clustered", redxor_clustered_source, 0, required_extensions);
 
-    error |= test<cl_int, RED_CLU_LG<4>, G, L>::run(device, context, queue, num_elements, "test_redand_clustered_logical", redand_clustered_logical_source, 0, required_extensions);
-    error |= test<cl_int, RED_CLU_LG<5>, G, L>::run(device, context, queue, num_elements, "test_rednor_clustered_logical", redor_clustered_logical_source, 0, required_extensions);
-    error |= test<cl_int, RED_CLU_LG<6>, G, L>::run(device, context, queue, num_elements, "test_redxor_clustered_logical", redxor_clustered_logical_source, 0, required_extensions);
+    error |= test<cl_int, RED_CLU<cl_int, 7>, G, L>::run(device, context, queue, num_elements, "test_redand_clustered_logical", redand_clustered_logical_source, 0, required_extensions);
+    error |= test<cl_int, RED_CLU<cl_int, 8>, G, L>::run(device, context, queue, num_elements, "test_redor_clustered_logical", redor_clustered_logical_source, 0, required_extensions);
+    error |= test<cl_int, RED_CLU<cl_int, 9>, G, L>::run(device, context, queue, num_elements, "test_redxor_clustered_logical", redxor_clustered_logical_source, 0, required_extensions);
 
     required_extensions = { "cl_khr_subgroup_shuffle" };
     error |= test<cl_int, SHF<cl_int, 0>, G, L>::run(device, context, queue, num_elements, "test_sub_group_shuffle", shuffle_source, 0, required_extensions);
