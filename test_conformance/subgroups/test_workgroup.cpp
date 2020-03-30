@@ -440,11 +440,10 @@ static const char * scexadd_non_uniform_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"Type x = sub_group_non_uniform_scan_exclusive_add(in[gid]);"
 " if (xy[gid].x < NON_UNIFORM) {"
-"    out[gid] = x ;\n"
+"    out[gid] = sub_group_non_uniform_scan_exclusive_add(in[gid]);\n"
 " }"
-//"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
+//"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid]);"
 "}\n";
 
 static const char * scexmax_non_uniform_source =
@@ -1509,8 +1508,7 @@ struct SCIN_NU {
                 n = ii + ns > nw ? nw - ii : ns;
 
                 for (i = 0; i < n; ++i)
-                    // t[ii+i] = (Ty)((int)(genrand_int32(gMTdata) & 0x7fffffff) % ns + 1);
-                    t[ii + i] = (Ty)i;
+                    t[ii+i] = (Ty)((int)(genrand_int32(gMTdata) & 0x7fffffff) % ns + 1);
             }
 
             // Now map into work group using map from device
@@ -1544,8 +1542,9 @@ struct SCIN_NU {
                 ii = j * ns;
                 n = ii + ns > nw ? nw - ii : ns;
                 // Check result
+                tr = TypeIdentity<Ty, Which>::val();
                 for (i = 0; i < n && i < NON_UNIFORM; ++i) {   // inside the subgroup
-                    tr = i == 0 ? mx[ii] : OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
+                    tr = OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
                     rr = my[ii + i];
                     if (rr != tr) {
                         log_error("ERROR: sub_group_non_uniform_scan_inclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
