@@ -61,7 +61,6 @@ struct BAR {
     {
         int i, ii, j, k, n;
         int nj = (nw + ns - 1)/ns;
-        int e;
 
         ii = 0;
         for (k=0; k<ng; ++k) {
