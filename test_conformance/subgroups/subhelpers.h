@@ -639,6 +639,9 @@ template <> struct TypeIdentity<cl_int, 3> { static cl_int val() { return (cl_in
 template <> struct TypeIdentity<cl_int, 4> { static cl_int val() { return (cl_int)~0; } };     //and
 template <> struct TypeIdentity<cl_int, 5> { static cl_int val() { return (cl_int)0; } };      //or
 template <> struct TypeIdentity<cl_int, 6> { static cl_int val() { return (cl_int)0; } };      //xor
+template <> struct TypeIdentity<cl_int, 7> { static cl_int val() { return (cl_int)1; } };      //logical_and
+template <> struct TypeIdentity<cl_int, 8> { static cl_int val() { return (cl_int)0; } };      //logical_or
+template <> struct TypeIdentity<cl_int, 9> { static cl_int val() { return (cl_int)0; } };      //logical_xor
 
 template <> struct TypeIdentity<cl_short, 0> { static cl_short val() { return (cl_short)0; } };     //add
 template <> struct TypeIdentity<cl_short, 1> { static cl_short val() { return std::numeric_limits<cl_short>::min(); } }; //max

@@ -325,11 +325,10 @@ static const char * scinadd_non_uniform_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"Type x = sub_group_non_uniform_scan_inclusive_add(in[gid]);"
 " if (xy[gid].x < NON_UNIFORM) {"
-"    out[gid] = x ;\n"
+"    out[gid] = sub_group_non_uniform_scan_inclusive_add(in[gid]);\n"
 " }"
-//"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
+//"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid]);"
 "}\n";
 static const char * scinmax_non_uniform_source =
 "__kernel void test_scinmax_non_uniform(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -543,11 +542,10 @@ static const char * redadd_non_uniform_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"Type x = sub_group_non_uniform_reduce_add(in[gid]);"
 " if (xy[gid].x < NON_UNIFORM) {"
-"    out[gid] = x ;\n"
+"    out[gid] = sub_group_non_uniform_reduce_add(in[gid]);\n"
 " }"
-//"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
+//"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid]);"
 "}\n";
 
 static const char * redmax_non_uniform_source =
@@ -1364,7 +1362,7 @@ struct RED_NU {
     {
         int ii, i, j, k, n;
         int nj = (nw + ns - 1) / ns;
-        Ty tr, rr, trt;
+        Ty tr, rr;
 
         log_info("  sub_group_non_uniform_reduce_%s(%s)...\n", operation_names[Which], TypeName<Ty>::val());
 
@@ -1379,23 +1377,20 @@ struct RED_NU {
             for (j = 0; j < nj; ++j) {
                 ii = j * ns;
                 n = ii + ns > nw ? nw - ii : ns;
+                if (n > NON_UNIFORM)
+                    n = NON_UNIFORM;
 
                 // Compute target
                 tr = mx[ii];
                 for (i = 1; i < n; ++i) {
-                    if (i > NON_UNIFORM - 1) {
-                        tr = 0;
-                    }
-                    else {
-                        tr = OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
-                    }
+                    tr = OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
                 }
                 // Check result
                 for (i = 0; i < n; ++i) {
                     rr = my[ii + i];
                     if (rr != tr) {
                         log_error("ERROR: sub_group_non_uniform_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
-                            operation_names[Which], TypeName<Ty>::val(), i, j, k, rr, tr);
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k, static_cast<int>(rr), static_cast<int>(tr));
                         return -1;
                     }
                 }
@@ -1406,107 +1401,6 @@ struct RED_NU {
             m += 4 * nw;
         }
 
-        return 0;
-    }
-};
-
-// DESCRIPTION:
-// Test for reduction non uniform logical functions
-// Which: 4 - and, 5 - or, 6 - xor
-template <int Which>
-struct RED_NU_LG {
-    static void gen(cl_int *x, cl_int *t, cl_int *m, int ns, int nw, int ng)
-    {
-        int i, ii, j, k, n;
-        int nj = (nw + ns - 1) / ns;
-        int e;
-        ii = 0;
-        for (k = 0; k < ng; ++k) {          // for each work_group
-            for (j = 0; j < nj; ++j) {      // for each subgroup
-                ii = j * ns;
-                n = ii + ns > nw ? nw - ii : ns;
-                e = (int)(genrand_int32(gMTdata) % 3);
-
-                // Initialize data matrix indexed by local id and sub group id
-                switch (e) {
-                case 0:
-                    memset(&t[ii], 0, n * sizeof(cl_int));
-                    break;
-                case 1:
-                    memset(&t[ii], 0, n * sizeof(cl_int));
-                    i = (int)(genrand_int32(gMTdata) % (cl_uint)n);
-                    t[ii + i] = 41;
-                    break;
-                case 2:
-                    memset(&t[ii], 0xff, n * sizeof(cl_int));
-                    break;
-                }
-            }
-
-            // Now map into work group using map from device
-            for (j = 0; j < nw; ++j) {
-                i = m[4 * j + 1] * ns + m[4 * j];
-                x[j] = t[i];
-            }
-
-            x += nw;
-            m += 4 * nw;
-        }
-    }
-
-    static int chk(cl_int *x, cl_int *y, cl_int *mx, cl_int *my, cl_int *m, int ns, int nw, int ng)
-    {
-        int ii, i, j, k, n;
-        int nj = (nw + ns - 1) / ns;
-        cl_int tr, rr;
-
-        log_info("  sub_group_non_uniform_reduce_logical_%s...\n", Which == 4 ? "and" : (Which == 5 ? "or" : "xor"));
-
-        for (k = 0; k < ng; ++k) {          // for each work_group
-            // Map to array indexed to array indexed by local ID and sub group
-            for (j = 0; j < nw; ++j) {      // inside the work_group
-                i = m[4 * j + 1] * ns + m[4 * j];
-                mx[i] = x[j];               // read host inputs for work_group
-                my[i] = y[j];               // read host inputs for work_group
-            }
-
-            for (j = 0; j < nj; ++j) {      // for each subgroup
-                ii = j * ns;
-                n = ii + ns > nw ? nw - ii : ns;
-
-                // Check result
-                for (i = 0; i < n; ++i) {   // for each subgroup
-                    if (i > NON_UNIFORM - 1) {
-                        tr = 0;
-                    }
-                    else {
-                        tr = mx[ii];
-                        if (Which == 4) {       // function and
-                            tr &= mx[ii + i];
-                        }
-                        else if (Which == 5) {  // function or
-                            tr |= mx[ii + i];
-                        }
-                        else if (Which == 6) {  // function xor
-                            tr ^= mx[ii + i];
-                        }
-                        else {
-                            log_error("ERROR: sub_group_non_uniform_reduce_logical - unknown function type number");
-                            return -1;
-                        }
-                    }
-                    rr = my[ii + i];
-                    if (rr != tr) {
-                        log_error("ERROR: sub_group_non_uniform_reduce_logical_%s mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
-                            (Which == 0 ? "add" : Which == 4 ? "and" : (Which == 5 ? "or" : "xor")), i, j, k, rr, tr);
-                        return -1;
-                    }
-                }
-            }
-            x += nw;
-            y += nw;
-            m += 4 * nw;
-        }
         return 0;
     }
 };
@@ -1583,7 +1477,7 @@ struct RED_CLU {
                     tr = clusters_results[i / CLUSTER_SIZE];
                     if (rr != tr) {
                         log_error("ERROR: sub_group_clustered_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d, expected %d\n",
-                            operation_names[Which], TypeName<Ty>::val(), i, j, k, (int) rr, (int) tr);
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k, static_cast<int>(rr), static_cast<int>(tr));
                         return -1;
                     }
                 }
@@ -1634,7 +1528,7 @@ struct SCIN_NU {
     {
         int ii, i, j, k, n;
         int nj = (nw + ns - 1) / ns;
-        Ty tr, rr, trt;
+        Ty tr, rr;
 
         log_info("  sub_group_non_uniform_scan_inclusive_%s(%s)...\n", operation_names[Which], TypeName<Ty>::val());
 
@@ -1650,14 +1544,8 @@ struct SCIN_NU {
                 ii = j * ns;
                 n = ii + ns > nw ? nw - ii : ns;
                 // Check result
-                for (i = 0; i < n; ++i) {   // inside the subgroup
-                    if (i > NON_UNIFORM - 1) {
-                        tr = 0;
-                    }
-                    else {
-                        tr = i == 0 ? mx[ii] : OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
-                    }
-                    trt = mx[ii + i];
+                for (i = 0; i < n && i < NON_UNIFORM; ++i) {   // inside the subgroup
+                    tr = i == 0 ? mx[ii] : OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
                     rr = my[ii + i];
                     if (rr != tr) {
                         log_error("ERROR: sub_group_non_uniform_scan_inclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
@@ -1671,94 +1559,6 @@ struct SCIN_NU {
             m += 4 * nw;
         }
 
-        return 0;
-    }
-};
-
-// DESCRIPTION:
-// Test for scan inclusive non uniform logical functions
-// Which: 4 - and, 5 - or, 6 - xor
-template <int Which>
-struct SCIN_NU_LG {
-    static void gen(cl_int *x, cl_int *t, cl_int *m, int ns, int nw, int ng)
-    {
-        int i, ii, j, k, n;
-        int nj = (nw + ns - 1) / ns;
-        int e;
-        ii = 0;
-        for (k = 0; k < ng; ++k) {          // for each work_group
-            for (j = 0; j < nj; ++j) {      // for each subgroup
-                ii = j * ns;
-                n = ii + ns > nw ? nw - ii : ns;
-                e = (int)(genrand_int32(gMTdata) % 3);
-
-                // Initialize data matrix indexed by local id and sub group id
-                switch (e) {
-                case 0:
-                    memset(&t[ii], 0, n * sizeof(cl_int));
-                    break;
-                case 1:
-                    memset(&t[ii], 0, n * sizeof(cl_int));
-                    i = (int)(genrand_int32(gMTdata) % (cl_uint)n);
-                    t[ii + i] = 41;
-                    break;
-                case 2:
-                    memset(&t[ii], 0xff, n * sizeof(cl_int));
-                    break;
-                }
-            }
-
-            // Now map into work group using map from device
-            for (j = 0; j < nw; ++j) {
-                i = m[4 * j + 1] * ns + m[4 * j];
-                x[j] = t[i];
-            }
-
-            x += nw;
-            m += 4 * nw;
-        }
-    }
-
-    static int chk(cl_int *x, cl_int *y, cl_int *mx, cl_int *my, cl_int *m, int ns, int nw, int ng)
-    {
-        int ii, i, j, k, n;
-        int nj = (nw + ns - 1) / ns;
-        cl_int tr, rr;
-
-        log_info("  sub_group_non_uniform_scan_inclusive_logical_%s...\n", Which == 4 ? "and" : (Which == 5 ? "or" : "xor"));
-
-        for (k = 0; k < ng; ++k) {          // for each work_group
-            // Map to array indexed to array indexed by local ID and sub group
-            for (j = 0; j < nw; ++j) {      // inside the work_group
-                i = m[4 * j + 1] * ns + m[4 * j];
-                mx[i] = x[j];               // read host inputs for work_group
-                my[i] = y[j];               // read host inputs for work_group
-            }
-
-            for (j = 0; j < nj; ++j) {      // for each subgroup
-                ii = j * ns;
-                n = ii + ns > nw ? nw - ii : ns;
-
-                // Check result
-                for (i = 0; i < n; ++i) {   // for each subgroup
-                    if (i > NON_UNIFORM - 1) {
-                        tr = 0;
-                    }
-                    else {
-                        tr = i == 0 ? mx[ii] : OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
-                    }
-                    rr = my[ii + i];
-                    if (rr != tr) {
-                        log_error("ERROR: sub_group_non_uniform_scan_inclusive_logical_%s mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
-                            (Which == 0 ? "add" : Which == 4 ? "and" : (Which == 5 ? "or" : "xor")), i, j, k, rr, tr);
-                        return -1;
-                    }
-                }
-            }
-            x += nw;
-            y += nw;
-            m += 4 * nw;
-        }
         return 0;
     }
 };
@@ -1945,7 +1745,7 @@ struct SCEX_NU {
     {
         int ii, i, j, k, n;
         int nj = (nw + ns - 1) / ns;
-        Ty tr, trt, rr;
+        Ty tr, rr;
 
         log_info("  sub_group_non_uniform_scan_exclusive_%s(%s)...\n", operation_names[Which], TypeName<Ty>::val());
 
@@ -1960,124 +1760,17 @@ struct SCEX_NU {
                 ii = j * ns;
                 n = ii + ns > nw ? nw - ii : ns;
                 // Check result
-                for (i = 0; i < n; ++i) {   // inside the subgroup
-
-                    if (i > NON_UNIFORM - 1) {
-                        tr = 0;
-                    }
-                    tr = i == 0 ? TypeIdentity<Ty, Which>::val() : OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
-
-                    trt = mx[ii + i];
+                tr = TypeIdentity<Ty, Which>::val();
+                for (i = 0; i < n && i < NON_UNIFORM; ++i) {   // inside the subgroup
                     rr = my[ii + i];
 
                     if (rr != tr) {
                         log_error("ERROR: sub_group_non_uniform_scan_exclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
-                            operation_names[Which], TypeName<Ty>::val(), i, j, k, rr, tr);
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k, static_cast<int>(rr), static_cast<int>(tr));
                         return -1;
                     }
-                }
-            }
-            x += nw;
-            y += nw;
-            m += 4 * nw;
-        }
 
-        return 0;
-    }
-};
-
-
-// DESCRIPTION:
-// Test for scan exclusive non uniform logical function
-// Which: 4 - and, 5 - or, 6 - xor
-template <int Which>
-struct SCEX_NU_LG {
-    static void gen(cl_int *x, cl_int *t, cl_int *m, int ns, int nw, int ng)
-    {
-        int i, ii, j, k, n;
-        int nj = (nw + ns - 1) / ns;
-        int e;
-        ii = 0;
-        for (k = 0; k < ng; ++k) {          // for each work_group
-            for (j = 0; j < nj; ++j) {      // for each subgroup
-                ii = j * ns;
-                n = ii + ns > nw ? nw - ii : ns;
-                e = (int)(genrand_int32(gMTdata) % 3);
-
-                // Initialize data matrix indexed by local id and sub group id
-                switch (e) {
-                case 0:
-                    memset(&t[ii], 0, n * sizeof(cl_int));
-                    break;
-                case 1:
-                    memset(&t[ii], 0, n * sizeof(cl_int));
-                    i = (int)(genrand_int32(gMTdata) % (cl_uint)n);
-                    t[ii + i] = 41;
-                    break;
-                case 2:
-                    memset(&t[ii], 0xff, n * sizeof(cl_int));
-                    break;
-                }
-            }
-
-            // Now map into work group using map from device
-            for (j = 0; j < nw; ++j) {
-                i = m[4 * j + 1] * ns + m[4 * j];
-                x[j] = t[i];
-            }
-            x += nw;
-            m += 4 * nw;
-        }
-    }
-
-    static int chk(cl_int *x, cl_int *y, cl_int *mx, cl_int *my, cl_int *m, int ns, int nw, int ng)
-    {
-        int ii, i, j, k, n;
-        int nj = (nw + ns - 1) / ns;
-        cl_int tr, trt, rr;
-
-        log_info("  sub_group_non_uniform_scan_exclusive_logical_%s...\n", Which == 4 ? "and" : (Which == 5 ? "or" : "xor"));
-
-        for (k = 0; k < ng; ++k) {      // for each work_group
-            // Map to array indexed to array indexed by local ID and sub group
-            for (j = 0; j < nw; ++j) {  // inside the work_group
-                i = m[4 * j + 1] * ns + m[4 * j];
-                mx[i] = x[j];           // read host inputs for work_group
-                my[i] = y[j];           // read device outputs for work_group
-            }
-
-            for (j = 0; j < nj; ++j) {  // for each subgroup
-                ii = j * ns;
-                n = ii + ns > nw ? nw - ii : ns;
-
-                // Check result
-                for (i = 0; i < n; ++i) {   // inside the subgroup
-                    if (i > NON_UNIFORM - 1) {
-                        tr = 0;
-                    }
-
-                    if (Which == 4) {       // function and
-                        tr = i == 0 ? (1 == 1) : tr & mx[ii + i];;
-                    }
-                    else if (Which == 5) {  // function or
-                        tr = i == 0 ? (1 != 1) : tr | mx[ii + i];;
-                    }
-                    else if (Which == 6) {  // function xor
-                        tr = i == 0 ? (1 != 1) : tr ^ mx[ii + i];;
-
-                    }
-                    else {
-                        log_error("ERROR: sub_group_non_uniform_scan_exclusive_logical - unknown function type number");
-                        return -1;
-                    }
-                    trt = mx[ii + i];
-                    rr = my[ii + i];
-
-                    if (rr != tr) {
-                        log_error("ERROR: sub_group_non_uniform_scan_exclusive_logical_%s mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
-                            (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")), i, j, k, rr, tr);
-                        return -1;
-                    }
+                    tr = OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
                 }
             }
             x += nw;
@@ -3132,9 +2825,9 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
     error |= test<cl_char, SCIN_NU<cl_char, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
     error |= test<cl_uchar, SCIN_NU<cl_uchar, 6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform", scinxor_non_uniform_source, 0, required_extensions);
 
-    error |= test<cl_int, SCIN_NU_LG<4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform_logical", scinand_non_uniform_logical_source, 0, required_extensions);
-    error |= test<cl_int, SCIN_NU_LG<5>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform_logical", scinor_non_uniform_logical_source, 0, required_extensions);
-    error |= test<cl_int, SCIN_NU_LG<6>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform_logical", scinxor_non_uniform_logical_source, 0, required_extensions);
+    error |= test<cl_int, SCIN_NU<cl_int, 7>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform_logical", scinand_non_uniform_logical_source, 0, required_extensions);
+    error |= test<cl_int, SCIN_NU<cl_int, 8>, G, L>::run(device, context, queue, num_elements, "test_scinor_non_uniform_logical", scinor_non_uniform_logical_source, 0, required_extensions);
+    error |= test<cl_int, SCIN_NU<cl_int, 9>, G, L>::run(device, context, queue, num_elements, "test_scinxor_non_uniform_logical", scinxor_non_uniform_logical_source, 0, required_extensions);
 
     error |= test<cl_int, SCEX_NU<cl_int, 0>, G, L>::run(device, context, queue, num_elements, "test_scexadd_non_uniform", scexadd_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, SCEX_NU<cl_uint, 0>, G, L>::run(device, context, queue, num_elements, "test_scexadd_non_uniform", scexadd_non_uniform_source, 0, required_extensions);
@@ -3211,9 +2904,9 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
     error |= test<cl_char, SCEX_NU<cl_char, 6>, G, L>::run(device, context, queue, num_elements, "test_scexxor_non_uniform", scexxor_non_uniform_source, 0, required_extensions);
     error |= test<cl_uchar, SCEX_NU<cl_uchar, 6>, G, L>::run(device, context, queue, num_elements, "test_scexxor_non_uniform", scexxor_non_uniform_source, 0, required_extensions);
 
-    error |= test<cl_int, SCEX_NU_LG<4>, G, L>::run(device, context, queue, num_elements, "test_scexand_non_uniform_logical", scexand_non_uniform_logical_source, 0, required_extensions);
-    error |= test<cl_int, SCEX_NU_LG<5>, G, L>::run(device, context, queue, num_elements, "test_scexor_non_uniform_logical", scexor_non_uniform_logical_source, 0, required_extensions);
-    error |= test<cl_int, SCEX_NU_LG<6>, G, L>::run(device, context, queue, num_elements, "test_scexxor_non_uniform_logical", scexxor_non_uniform_logical_source, 0, required_extensions);
+    error |= test<cl_int, SCEX_NU<cl_int, 7>, G, L>::run(device, context, queue, num_elements, "test_scexand_non_uniform_logical", scexand_non_uniform_logical_source, 0, required_extensions);
+    error |= test<cl_int, SCEX_NU<cl_int, 8>, G, L>::run(device, context, queue, num_elements, "test_scexor_non_uniform_logical", scexor_non_uniform_logical_source, 0, required_extensions);
+    error |= test<cl_int, SCEX_NU<cl_int, 9>, G, L>::run(device, context, queue, num_elements, "test_scexxor_non_uniform_logical", scexxor_non_uniform_logical_source, 0, required_extensions);
 
     error |= test<cl_int, RED_NU<cl_int, 0>, G, L>::run(device, context, queue, num_elements, "test_redadd_non_uniform", redadd_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, RED_NU<cl_uint, 0>, G, L>::run(device, context, queue, num_elements, "test_redadd_non_uniform", redadd_non_uniform_source, 0, required_extensions);
@@ -3290,9 +2983,9 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
     error |= test<cl_char, RED_NU<cl_char, 6>, G, L>::run(device, context, queue, num_elements, "test_redxor_non_uniform", redxor_non_uniform_source, 0, required_extensions);
     error |= test<cl_uchar, RED_NU<cl_uchar, 6>, G, L>::run(device, context, queue, num_elements, "test_redxor_non_uniform", redxor_non_uniform_source, 0, required_extensions);
 
-    error |= test<cl_int, RED_NU_LG<4>, G, L>::run(device, context, queue, num_elements, "test_redand_non_uniform_logical", redand_non_uniform_logical_source, 0, required_extensions);
-    error |= test<cl_int, RED_NU_LG<5>, G, L>::run(device, context, queue, num_elements, "test_rednor_non_uniform_logical", redor_non_uniform_logical_source, 0, required_extensions);
-    error |= test<cl_int, RED_NU_LG<6>, G, L>::run(device, context, queue, num_elements, "test_redxor_non_uniform_logical", redxor_non_uniform_logical_source, 0, required_extensions);
+    error |= test<cl_int, RED_NU<cl_int, 7>, G, L>::run(device, context, queue, num_elements, "test_redand_non_uniform_logical", redand_non_uniform_logical_source, 0, required_extensions);
+    error |= test<cl_int, RED_NU<cl_int, 8>, G, L>::run(device, context, queue, num_elements, "test_redor_non_uniform_logical", redor_non_uniform_logical_source, 0, required_extensions);
+    error |= test<cl_int, RED_NU<cl_int, 9>, G, L>::run(device, context, queue, num_elements, "test_redxor_non_uniform_logical", redxor_non_uniform_logical_source, 0, required_extensions);
 
     required_extensions = { "cl_khr_subgroup_clustered_reduce" };
     error |= test<cl_int, RED_CLU<cl_int, 0>, G, L>::run(device, context, queue, num_elements, "test_redadd_clustered", redadd_clustered_source, 0, required_extensions);
