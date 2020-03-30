@@ -22,8 +22,8 @@
 
 #include <limits>
 #include <vector>
-#undef min;
-#undef max;
+#undef min
+#undef max
 #define NON_UNIFORM 4
 // Some template helpers
 namespace subgroups {
@@ -388,65 +388,61 @@ compare(const Ty &lhs, const Ty &rhs) {
 }
 
 template <typename Ty>
-typename std::enable_if<is_vector_type<Ty>::value, bool>::type
+typename std::enable_if<is_vector_type<Ty>::value>::type
 set_value(Ty &lhs, const cl_uint &rhs) {
     const int size = sizeof(Ty) / sizeof(typename scalar_type<Ty>::type);
     for (auto i = 0; i < size; ++i) {
         lhs.s[i] = rhs;
     }
-    return true;
 }
 
 
 template <typename Ty>
-typename std::enable_if<is_vector_type<Ty>::value, bool>::type
+typename std::enable_if<is_vector_type<Ty>::value>::type
 set_value(Ty &lhs, const Ty &rhs) {
     lhs = rhs;
-    return true;
 }
 
 
 template <typename Ty, int N = 0 >
-typename std::enable_if<is_vector_type3<Ty>::value, bool>::type
+typename std::enable_if<is_vector_type3<Ty>::value>::type
 set_value(Ty &lhs, const cl_uint &rhs) {
     for (auto i = 0; i < 3; ++i) {
         lhs.data.s[i] = rhs;
     }
-    return true;
 }
 
 template <typename Ty, int N = 0 >
-typename std::enable_if<is_vector_type_half<Ty>::value, bool>::type
+typename std::enable_if<is_vector_type_half<Ty>::value>::type
 set_value(Ty &lhs, const cl_uint &rhs) {
     const int size = sizeof(Ty) / sizeof(typename scalar_type<Ty>::type);
     for (auto i = 0; i < size; ++i) {
         lhs.data.s[i] = rhs;
     }
-    return true;
 }
 
 template <typename Ty>
 typename std::enable_if<!is_vector_type<Ty>::value, bool>::type
 compare(const Ty &lhs, const Ty &rhs) {
-    return (lhs == rhs) ? true : false;
+    return lhs == rhs;
 }
 
 template <typename Ty>
-typename std::enable_if<!is_vector_type<Ty>::value, bool>::type
+typename std::enable_if<!is_vector_type<Ty>::value>::type
 set_value(Ty &lhs, const cl_uint &rhs) {
-    return lhs = rhs;
+    lhs = static_cast<Ty>(rhs);
 }
 
 template <typename Ty>
 typename std::enable_if<!is_vector_type_half<Ty>::value, bool>::type
 compare(const Ty &lhs, const Ty &rhs) {
-    return (lhs.data == rhs.data) ? true : false;
+    return lhs.data == rhs.data;
 }
 
 template <typename Ty>
-typename std::enable_if<!is_vector_type_half<Ty>::value, bool>::type
+typename std::enable_if<!is_vector_type_half<Ty>::value>::type
 set_value(Ty &lhs, const cl_uint &rhs) {
-    return lhs.data = rhs;
+    lhs.data = rhs;
 }
 
 template <typename Ty> struct TypeName;
@@ -879,7 +875,6 @@ struct test {
         size_t tmp;
         int error;
         int subgroup_size, num_subgroups;
-        size_t realSize;
         size_t global;
         size_t local;
         const char *kstrings[3];

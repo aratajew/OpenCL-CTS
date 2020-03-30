@@ -903,7 +903,7 @@ struct SHF {
 
     static int chk(Ty *x, Ty *y, Ty *mx, Ty *my, cl_int *m, int ns, int nw, int ng)
     {
-        int ii, i, j, k, l, n, delta;
+        int ii, i, j, k, l, n;
         int nj = (nw + ns - 1) / ns;
         Ty tr, rr;
 
@@ -956,6 +956,8 @@ struct SHF {
 // test mask functions 0 means equal
 // DESCRIPTION :
 // test mask functions : 0 - equal, 1 - ge, 2 - gt, 3 - le, 4 - lt
+
+static const char smask_names[][3] = { "eq", "ge", "gt", "le", "lt" };
 
 template <typename Ty, int Which>
 struct SMASK {
@@ -1011,7 +1013,7 @@ struct SMASK {
         int nj = (nw + ns - 1) / ns;
         Ty taa, raa;
 
-        log_info("  get_sub_group_%s_mask...\n", Which == 0? "eq": Which == 1 ? "ge" : Which == 2 ? "gt" : Which == 3 ? "le":"lt");
+        log_info("  get_sub_group_%s_mask...\n", smask_names[Which]);
 
         for (k = 0; k < ng; ++k) {      // for each work_group
             for (j = 0; j < nw; ++j) {  // inside the work_group
@@ -1029,7 +1031,7 @@ struct SMASK {
                     taa = mx[ii + i];     // read host input for subgroup
                     raa = my[ii + i];     // read device outputs for subgroup
                     if (!compare(raa, taa)) {
-                        log_error("ERROR:  get_sub_group_%s_mask... mismatch for local id %d in sub group %d in group %d, obtained %d, expected %d\n", Which == 0 ? "eq" : Which == 1 ? "ge" : Which == 2 ? "gt" : Which == 3 ? "le" : "lt", i, j, k, raa, taa);
+                        log_error("ERROR:  get_sub_group_%s_mask... mismatch for local id %d in sub group %d in group %d, obtained %d, expected %d\n", smask_names[Which], i, j, k, raa, taa);
                         return -1;
                     }
                 }
@@ -1237,6 +1239,22 @@ struct AA {
     }
 };
 
+template <typename Ty, int Which>
+struct OPERATION;
+
+template <typename Ty> struct OPERATION<Ty, 0> { static Ty calculate(Ty a, Ty b) { return a + b; } };
+template <typename Ty> struct OPERATION<Ty, 1> { static Ty calculate(Ty a, Ty b) { return a > b ? a : b; } };
+template <typename Ty> struct OPERATION<Ty, 2> { static Ty calculate(Ty a, Ty b) { return a < b ? a : b; } };
+template <typename Ty> struct OPERATION<Ty, 3> { static Ty calculate(Ty a, Ty b) { return a * b; } };
+template <typename Ty> struct OPERATION<Ty, 4> { static Ty calculate(Ty a, Ty b) { return a & b; } };
+template <typename Ty> struct OPERATION<Ty, 5> { static Ty calculate(Ty a, Ty b) { return a | b; } };
+template <typename Ty> struct OPERATION<Ty, 6> { static Ty calculate(Ty a, Ty b) { return a ^ b; } };
+template <typename Ty> struct OPERATION<Ty, 7> { static Ty calculate(Ty a, Ty b) { return a && b; } };
+template <typename Ty> struct OPERATION<Ty, 8> { static Ty calculate(Ty a, Ty b) { return a || b; } };
+template <typename Ty> struct OPERATION<Ty, 9> { static Ty calculate(Ty a, Ty b) { return !a ^ !b; } };
+
+static const char * const operation_names[] = { "add", "max", "min", "mul", "and", "or", "xor", "logical_and", "logical_or", "logical_xor" };
+
 // Reduce functions
 template <typename Ty, int Which>
 struct RED {
@@ -1272,7 +1290,7 @@ struct RED {
         int nj = (nw + ns - 1)/ns;
         Ty tr, rr;
 
-        log_info("  sub_group_reduce_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : "min"), TypeName<Ty>::val());
+        log_info("  sub_group_reduce_%s(%s)...\n", operation_names[Which], TypeName<Ty>::val());
 
         for (k=0; k<ng; ++k) {
             // Map to array indexed to array indexed by local ID and sub group
@@ -1287,29 +1305,16 @@ struct RED {
                 n = ii + ns > nw ? nw - ii : ns;
 
                 // Compute target
-                if (Which == 0) {
-                    // add
-                    tr = mx[ii];
-                    for (i=1; i<n; ++i)
-                        tr +=  mx[ii + i];
-                } else if (Which == 1) {
-                    // max
-                    tr = mx[ii];
-                    for (i=1; i<n; ++i)
-                        tr = tr > mx[ii + i] ? tr : mx[ii + i];
-                } else if (Which == 2) {
-                    // min
-                    tr = mx[ii];
-                    for (i=1; i<n; ++i)
-                        tr = tr > mx[ii + i] ? mx[ii + i] : tr;
-                }
+                tr = mx[ii];
+                for (i=1; i<n; ++i)
+                    tr = OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
 
                 // Check result
                 for (i=0; i<n; ++i) {
                     rr = my[ii+i];
                     if (rr != tr) {
                         log_error("ERROR: sub_group_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d\n",
-                                   Which == 0 ? "add" : (Which == 1 ? "max" : "min"), TypeName<Ty>::val(), i, j, k);
+                                   operation_names[Which], TypeName<Ty>::val(), i, j, k);
                         return -1;
                     }
                 }
@@ -1361,20 +1366,7 @@ struct RED_NU {
         int nj = (nw + ns - 1) / ns;
         Ty tr, rr, trt;
 
-        log_info("  sub_group_non_uniform_reduce_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val());
-
-        uint64_t val1 = 0;
-        uint64_t val2 = 0;
-        size_t size_to_copy = 0;
-        if (strstr(TypeDef<Ty>::val(), "double")) {
-            size_to_copy = sizeof(uint64_t);
-        }
-        if (strstr(TypeDef<Ty>::val(), "float")) {
-            size_to_copy = sizeof(uint32_t);
-        }
-        if (strstr(TypeDef<Ty>::val(), "half")) {
-            size_to_copy = sizeof(uint16_t);
-        }
+        log_info("  sub_group_non_uniform_reduce_%s(%s)...\n", operation_names[Which], TypeName<Ty>::val());
 
         for (k = 0; k < ng; ++k) {
             // Map to array indexed to array indexed by local ID and sub group
@@ -1389,103 +1381,21 @@ struct RED_NU {
                 n = ii + ns > nw ? nw - ii : ns;
 
                 // Compute target
-                if (Which == 0) {           // function add
-                    tr = mx[ii];
-                    for (i = 1; i < n; ++i) {
-                        if (i > NON_UNIFORM - 1) {
-                            tr = 0;
-                        }
-                        else {
-                            tr += mx[ii + i];
-                        }
+                tr = mx[ii];
+                for (i = 1; i < n; ++i) {
+                    if (i > NON_UNIFORM - 1) {
+                        tr = 0;
                     }
-                }
-                else if (Which == 1) {      // function max
-                    tr = mx[ii];
-                    for (i = 1; i < n; ++i) {
-                        if (i > NON_UNIFORM - 1) {
-                            tr = 0;
-                        }
-                        else {
-                            tr = tr > mx[ii + i] ? tr : mx[ii + i];
-                        }
+                    else {
+                        tr = OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
                     }
-                }
-                else if (Which == 2) {      // function min
-                    tr = mx[ii];
-                    for (i = 1; i < n; ++i) {
-                        if (i > NON_UNIFORM - 1) {
-                            tr = 0;
-                        }
-                        else {
-                            tr = tr > mx[ii + i] ? mx[ii + i] : tr;
-                        }
-                    }
-
-                }
-                else if (Which == 3) {      // function mul
-                    tr = mx[ii];
-                    for (i = 1; i < n; ++i) {
-                        if (i > NON_UNIFORM - 1) {
-                            tr = 0;
-                        }
-                        else {
-                            tr *= mx[ii + i];
-                        }
-                    }
-
-                }
-                else if (Which == 4) {      // function and
-                    tr = mx[ii];
-                    for (i = 1; i < n; ++i) {
-                        if (i > NON_UNIFORM - 1) {
-                            tr = 0;
-                        }
-                        else {
-                            trt = mx[ii + i];
-                            std::memcpy(&val1, &tr, size_to_copy);
-                            std::memcpy(&val2, &trt, size_to_copy);
-                            tr = val1 & val2;
-                        }
-                    }
-
-                }
-                else if (Which == 5) {      // function or
-                    tr = mx[ii];
-                    for (i = 1; i < n; ++i) {
-                        if (i > NON_UNIFORM - 1) {
-                            tr = 0;
-                        }
-                        else {
-                            trt = mx[ii + i];
-                            std::memcpy(&val1, &tr, size_to_copy);
-                            std::memcpy(&val2, &trt, size_to_copy);
-                            tr = val1 | val2;
-                        }
-                    }
-
-                }
-                else if (Which == 6) {      // function xor
-                    tr = mx[ii];
-                    for (i = 1; i < n; ++i) {
-                        if (i > NON_UNIFORM - 1) {
-                            tr = 0;
-                        }
-                        else {
-                            trt = mx[ii + i];
-                            std::memcpy(&val1, &tr, size_to_copy);
-                            std::memcpy(&val2, &trt, size_to_copy);
-                            tr = val1 ^ val2;
-                        }
-                    }
-
                 }
                 // Check result
                 for (i = 0; i < n; ++i) {
                     rr = my[ii + i];
                     if (rr != tr) {
                         log_error("ERROR: sub_group_non_uniform_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
-                            Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val(), i, j, k, rr, tr);
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k, rr, tr);
                         return -1;
                     }
                 }
@@ -1605,20 +1515,6 @@ struct RED_NU_LG {
 // Test for reduce cluster functions
 // Which: 0 - add, 1 - max, 2 - min, 3 - mul, 4 - and, 5 - or, 6 - xor, 7 - logical and, 8 - logical or, 9 - logical xor
 template <typename Ty, int Which>
-struct RED_OP;
-
-template <typename Ty> struct RED_OP<Ty, 0> { static Ty calculate(Ty a, Ty b) { return a + b; } };
-template <typename Ty> struct RED_OP<Ty, 1> { static Ty calculate(Ty a, Ty b) { return a > b ? a : b; } };
-template <typename Ty> struct RED_OP<Ty, 2> { static Ty calculate(Ty a, Ty b) { return a < b ? a : b; } };
-template <typename Ty> struct RED_OP<Ty, 3> { static Ty calculate(Ty a, Ty b) { return a * b; } };
-template <typename Ty> struct RED_OP<Ty, 4> { static Ty calculate(Ty a, Ty b) { return a & b; } };
-template <typename Ty> struct RED_OP<Ty, 5> { static Ty calculate(Ty a, Ty b) { return a | b; } };
-template <typename Ty> struct RED_OP<Ty, 6> { static Ty calculate(Ty a, Ty b) { return a ^ b; } };
-template <typename Ty> struct RED_OP<Ty, 7> { static Ty calculate(Ty a, Ty b) { return a && b; } };
-template <typename Ty> struct RED_OP<Ty, 8> { static Ty calculate(Ty a, Ty b) { return a || b; } };
-template <typename Ty> struct RED_OP<Ty, 9> { static Ty calculate(Ty a, Ty b) { return !a ^ !b; } };
-
-template <typename Ty, int Which>
 struct RED_CLU {
     static void gen(Ty *x, Ty *t, cl_int *m, int ns, int nw, int ng)
     {
@@ -1650,10 +1546,9 @@ struct RED_CLU {
 
     static int chk(Ty *x, Ty *y, Ty *mx, Ty *my, cl_int *m, int ns, int nw, int ng)
     {
-        static const char * const op_names[] = { "add", "max", "min", "mul", "and", "or", "xor", "logical_and", "logical_or", "logical_xor" };
         int nj = (nw + ns - 1) / ns;
 
-        log_info("  sub_group_clustered_reduce_%s(%s)...\n", op_names[Which], TypeName<Ty>::val());
+        log_info("  sub_group_clustered_reduce_%s(%s)...\n", operation_names[Which], TypeName<Ty>::val());
 
         for (int k = 0; k < ng; ++k) {
             // Map to array indexed to array indexed by local ID and sub group
@@ -1678,7 +1573,7 @@ struct RED_CLU {
                     if (i % CLUSTER_SIZE == 0)
                         tr = mx[ii + i];
                     else
-                        tr = RED_OP<Ty, Which>::calculate(tr, mx[ii + i]);
+                        tr = OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
                     clusters_results[i / CLUSTER_SIZE] = tr;
                 }
 
@@ -1688,7 +1583,7 @@ struct RED_CLU {
                     tr = clusters_results[i / CLUSTER_SIZE];
                     if (rr != tr) {
                         log_error("ERROR: sub_group_clustered_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d, expected %d\n",
-                            op_names[Which], TypeName<Ty>::val(), i, j, k, rr, tr);
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k, (int) rr, (int) tr);
                         return -1;
                     }
                 }
@@ -1741,20 +1636,7 @@ struct SCIN_NU {
         int nj = (nw + ns - 1) / ns;
         Ty tr, rr, trt;
 
-        log_info("  sub_group_non_uniform_scan_inclusive_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul": (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val());
-
-        uint64_t val1 = 0;
-        uint64_t val2 = 0;
-        size_t size_to_copy = 0;
-        if (strstr(TypeDef<Ty>::val(), "double")) {
-            size_to_copy = sizeof(uint64_t);
-        }
-        if (strstr(TypeDef<Ty>::val(), "float")) {
-            size_to_copy = sizeof(uint32_t);
-        }
-        if (strstr(TypeDef<Ty>::val(), "half")) {
-            size_to_copy = sizeof(uint16_t);
-        }
+        log_info("  sub_group_non_uniform_scan_inclusive_%s(%s)...\n", operation_names[Which], TypeName<Ty>::val());
 
         for (k = 0; k < ng; ++k) {      // for each work_group
             // Map to array indexed to array indexed by local ID and sub group
@@ -1770,47 +1652,16 @@ struct SCIN_NU {
                 // Check result
                 for (i = 0; i < n; ++i) {   // inside the subgroup
                     if (i > NON_UNIFORM - 1) {
-                        val1 = 0;
                         tr = 0;
                     }
                     else {
-                        if (Which == 0) {       // function add
-                            tr = i == 0 ? mx[ii] : tr + mx[ii + i];
-                        }
-                        else if (Which == 1) {  // function max
-                            tr = i == 0 ? mx[ii] : (tr > mx[ii + i] ? tr : mx[ii + i]);
-                        }
-                        else if (Which == 2) {  // function min
-                            tr = i == 0 ? mx[ii] : (tr > mx[ii + i] ? mx[ii + i] : tr);
-                        }
-                        else if (Which == 3) {  // function mul
-                            tr = i == 0 ? mx[ii] : tr * mx[ii + i];
-                        }
-                        else if (Which == 4) {  // function and
-                            //tr = i == 0 ? mx[ii] : tr & mx[ii + i];
-                            tr = i == 0 ? mx[ii] : val1 & val2;
-                        }
-                        else if (Which == 5) {  // function or
-                            //tr = i == 0 ? mx[ii] : tr | mx[ii + i];
-                            tr = i == 0 ? mx[ii] : val1 | val2;
-                        }
-                        else if (Which == 6) {  // function xor
-                            //tr = i == 0 ? mx[ii] : tr ^ mx[ii + i];
-                            tr = i == 0 ? mx[ii] : val1 ^ val2;
-                        }
-                        else {
-                            log_error("ERROR: sub_group_non_uniform_scan_inclusive - unknown function type number");
-                            return -1;
-                        }
-
+                        tr = i == 0 ? mx[ii] : OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
                     }
                     trt = mx[ii + i];
                     rr = my[ii + i];
-                    std::memcpy(&val1, &tr, size_to_copy);
-                    std::memcpy(&val2, &trt, size_to_copy);
                     if (rr != tr) {
                         log_error("ERROR: sub_group_non_uniform_scan_inclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
-                            Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val(), i, j, k, rr, tr);
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k, rr, tr);
                         return -1;
                     }
                 }
@@ -1894,19 +1745,7 @@ struct SCIN_NU_LG {
                         tr = 0;
                     }
                     else {
-                        if (Which == 4) {       // function and
-                            tr = i == 0 ? mx[ii] : tr & mx[ii + i];;
-                        }
-                        else if (Which == 5) {  // function or
-                            tr = i == 0 ? mx[ii] : tr | mx[ii + i];;
-                        }
-                        else if (Which == 6) {  // function xor
-                            tr = i == 0 ? mx[ii] : tr ^ mx[ii + i];;
-                        }
-                        else {
-                            log_error("ERROR: sub_group_non_uniform_scan_inclusive_logical - unknown function type number");
-                            return -1;
-                        }
+                        tr = i == 0 ? mx[ii] : OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
                     }
                     rr = my[ii + i];
                     if (rr != tr) {
@@ -1960,7 +1799,7 @@ struct SCIN {
         int nj = (nw + ns - 1)/ns;
         Ty tr, rr;
 
-        log_info("  sub_group_scan_inclusive_%s(%s)...\n",  Which == 0 ? "add" : (Which == 1 ? "max" : "min"), TypeName<Ty>::val());
+        log_info("  sub_group_scan_inclusive_%s(%s)...\n",  operation_names[Which], TypeName<Ty>::val());
 
         for (k=0; k<ng; ++k) {
             // Map to array indexed to array indexed by local ID and sub group
@@ -1976,18 +1815,12 @@ struct SCIN {
 
                 // Check result
                 for (i=0; i<n; ++i) {
-                    if (Which == 0) {
-                        tr = i == 0 ? mx[ii] : tr + mx[ii + i];
-                    } else if (Which == 1) {
-                        tr = i == 0 ? mx[ii] : (tr > mx[ii + i] ? tr : mx[ii + i]);
-                    } else {
-                        tr = i == 0 ? mx[ii] : (tr > mx[ii + i] ? mx[ii + i] : tr);
-                    }
+                    tr = i == 0 ? mx[ii] : OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
 
                     rr = my[ii+i];
                     if (rr != tr) {
                         log_error("ERROR: sub_group_scan_inclusive_%s(%s) mismatch for local id %d in sub group %d in group %d\n",
-                                   Which == 0 ? "add" : (Which == 1 ? "max" : "min"), TypeName<Ty>::val(), i, j, k);
+                                   operation_names[Which], TypeName<Ty>::val(), i, j, k);
                         return -1;
                     }
                 }
@@ -2037,7 +1870,7 @@ struct SCEX {
         int nj = (nw + ns - 1)/ns;
         Ty tr, trt, rr;
 
-        log_info("  sub_group_scan_exclusive_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : "min"), TypeName<Ty>::val());
+        log_info("  sub_group_scan_exclusive_%s(%s)...\n", operation_names[Which], TypeName<Ty>::val());
 
         for (k=0; k<ng; ++k) {
             // Map to array indexed to array indexed by local ID and sub group
@@ -2065,7 +1898,7 @@ struct SCEX {
 
                     if (rr != tr) {
                         log_error("ERROR: sub_group_scan_exclusive_%s(%s) mismatch for local id %d in sub group %d in group %d\n",
-                                   Which == 0 ? "add" : (Which == 1 ? "max" : "min"), TypeName<Ty>::val(), i, j, k);
+                                   operation_names[Which], TypeName<Ty>::val(), i, j, k);
                         return -1;
                     }
                 }
@@ -2114,20 +1947,7 @@ struct SCEX_NU {
         int nj = (nw + ns - 1) / ns;
         Ty tr, trt, rr;
 
-        log_info("  sub_group_non_uniform_scan_exclusive_%s(%s)...\n", Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val());
-
-        uint64_t val1 = 0;
-        uint64_t val2 = 0;
-        size_t size_to_copy = 0;
-        if (strstr(TypeDef<Ty>::val(), "double")) {
-            size_to_copy = sizeof(uint64_t);
-        }
-        if (strstr(TypeDef<Ty>::val(), "float")) {
-            size_to_copy = sizeof(uint32_t);
-        }
-        if (strstr(TypeDef<Ty>::val(), "half")) {
-            size_to_copy = sizeof(uint16_t);
-        }
+        log_info("  sub_group_non_uniform_scan_exclusive_%s(%s)...\n", operation_names[Which], TypeName<Ty>::val());
 
         for (k = 0; k < ng; ++k) {      // for each work_group
             // Map to array indexed to array indexed by local ID and sub group
@@ -2143,46 +1963,16 @@ struct SCEX_NU {
                 for (i = 0; i < n; ++i) {   // inside the subgroup
 
                     if (i > NON_UNIFORM - 1) {
-                        val1 = 0;
                         tr = 0;
                     }
-                    if (Which == 0) {       // function add
-                        tr = i == 0 ? TypeIdentity<Ty, Which>::val() : tr + mx[ii + i];
-                    }
-                    else if (Which == 1) {  // function max
-                        tr = i == 0 ? TypeIdentity<Ty, Which>::val() : (mx[ii + i] > tr ? mx[ii + i] : tr);
-                    }
-                    else if (Which == 2) {  // function min
-                        tr = i == 0 ? TypeIdentity<Ty, Which>::val() : (mx[ii + i] > tr ? tr : mx[ii + i]);
-                    }
-                    else if (Which == 3) {  // function mul
-                        tr = i == 0 ? TypeIdentity<Ty, Which>::val() : tr * mx[ii + i];
-                    }
-                    else if (Which == 4) {  // function and
-                        //tr = i == 0 ? TypeIdentity<Ty, Which>::val() : tr & mx[ii + i];
-                        tr = i == 0 ? TypeIdentity<Ty, Which>::val() : val1 & val2;
-                    }
-                    else if (Which == 5) {  // function or
-                        tr = i == 0 ? TypeIdentity<Ty, Which>::val() : val1 | val2;
-                        //tr = i == 0 ? TypeIdentity<Ty, Which>::val() : tr | mx[ii + i];
-                    }
-                    else if (Which == 6) { // function xor
-                        tr = i == 0 ? TypeIdentity<Ty, Which>::val() : val1 ^ val2;
-                        //tr = i == 0 ? TypeIdentity<Ty, Which>::val() : tr ^ mx[ii + i];
+                    tr = i == 0 ? TypeIdentity<Ty, Which>::val() : OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
 
-                    }
-                    else {
-                        log_error("ERROR: sub_group_non_uniform_scan_exclusive - unknown function type number");
-                        return -1;
-                    }
                     trt = mx[ii + i];
                     rr = my[ii + i];
-                    std::memcpy(&val1, &tr, size_to_copy);
-                    std::memcpy(&val2, &trt, size_to_copy);
 
                     if (rr != tr) {
                         log_error("ERROR: sub_group_non_uniform_scan_exclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
-                            Which == 0 ? "add" : (Which == 1 ? "max" : (Which == 2 ? "min" : Which == 3 ? "mul" : (Which == 4 ? "and" : (Which == 5 ? "or" : "xor")))), TypeName<Ty>::val(), i, j, k, rr, tr);
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k, rr, tr);
                         return -1;
                     }
                 }
@@ -2438,7 +2228,7 @@ struct ELECT {
 
     static int chk(cl_int *x, cl_int *y, cl_int *mx, cl_int *my, cl_int *m, int ns, int nw, int ng)
     {
-        int ii, i, j, k, l, n;
+        int ii, i, j, k, n;
         int nj = (nw + ns - 1)/ns;
         cl_int tr, rr;
         log_info("  sub_group_elect...\n");
