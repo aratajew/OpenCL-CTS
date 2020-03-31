@@ -189,9 +189,8 @@ static const char * elect_source =
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
 "    Type x = in[gid];\n"
-"    int am_i_elected = sub_group_elect();"
+"    int am_i_elected = sub_group_elect();\n"
 "    out[gid] = am_i_elected;\n" //one in subgroup true others false.
-"    printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , am_i_elected = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], am_i_elected);"
 "}\n";
 static const char * any_source =
 "__kernel void test_any(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -214,10 +213,9 @@ static const char * non_uniform_any_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    if (xy[gid].x < NON_UNIFORM) {"
-"        out[gid] = sub_group_any(in[gid]);\n"
-"    }"
-"printf(\"gid = %d, sub group local id = %d, sub group id = %d, out[gid] = %d , in[gid] = %d\\n\",gid,xy[gid].x, xy[gid].y, out[gid], in[gid]);"
+"    if (xy[gid].x < NON_UNIFORM) {\n"
+"        out[gid] = sub_group_non_uniform_any(in[gid]);\n"
+"    }\n"
 "}\n";
 static const char * non_uniform_all_source =
 "__kernel void test_non_uniform_all(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -225,7 +223,7 @@ static const char * non_uniform_all_source =
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
 "    if (xy[gid].x < NON_UNIFORM) {"
-"        out[gid] = sub_group_all(in[gid]);\n"
+"        out[gid] = sub_group_non_uniform_all(in[gid]);\n"
 "    }"
 "}\n";
 static const char * non_uniform_all_equal_source =
@@ -1114,15 +1112,15 @@ struct AAN {
                 // Initialize data matrix indexed by local id and sub group id
                 switch (e) {
                 case 0:
-                    memset(&t[ii], 0, n * sizeof(cl_int));
+                    memset(&t[ii], 0, n * sizeof(Ty));
                     break;
                 case 1:
-                    memset(&t[ii], 0, n * sizeof(cl_int));
+                    memset(&t[ii], 0, n * sizeof(Ty));
                     i = (int)(genrand_int32(gMTdata) % (cl_uint)n);
                     t[ii + i] = 41;
                     break;
                 case 2:
-                    memset(&t[ii], 0xff, n * sizeof(cl_int));
+                    memset(&t[ii], 0xff, n * sizeof(Ty));
                     break;
                 }
             }
@@ -3379,20 +3377,22 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
     error |= test<cl_ushort, SCEX<cl_ushort, 2>, G, L>::run(device, context, queue, num_elements, "test_scexmin", scexmin_source, 0, required_extensions);
     error |= test<cl_char, SCEX<cl_char, 2>, G, L>::run(device, context, queue, num_elements, "test_scexmin", scexmin_source, 0, required_extensions);
     error |= test<cl_uchar, SCEX<cl_uchar, 2>, G, L>::run(device, context, queue, num_elements, "test_scexmin", scexmin_source, 0, required_extensions);
+
     required_extensions = { "cl_khr_subgroup_non_uniform_vote" };
     error |= test<cl_int, ELECT, G, L>::run(device, context, queue, num_elements, "test_elect", elect_source, 0, required_extensions);
+    error |= test<int, AAN<int, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
     error |= test<int, AAN<int, 1>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all", non_uniform_all_source, 0, required_extensions);
-    error |= test<int, AAN<int, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
-    error |= test<cl_int, AAN<cl_int, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_uint, AAN<cl_uint, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_short, AAN<cl_short, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_ushort, AAN<cl_ushort, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_char, AAN<cl_char, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_uchar, AAN<cl_uchar, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_long, AAN<cl_long, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_ulong, AAN<cl_ulong, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_float, AAN<cl_float, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_double, AAN<cl_double, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
+    error |= test<cl_char, AAN<cl_char, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_uchar, AAN<cl_uchar, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_short, AAN<cl_short, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_ushort, AAN<cl_ushort, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_int, AAN<cl_int, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_uint, AAN<cl_uint, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_long, AAN<cl_long, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_ulong, AAN<cl_ulong, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_float, AAN<cl_float, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_double, AAN<cl_double, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+
     required_extensions = { "cl_khr_subgroup_ballot" };
     error |= test<cl_int, BC<cl_int, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
     error |= test<cl_int2, BC<cl_int2, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
