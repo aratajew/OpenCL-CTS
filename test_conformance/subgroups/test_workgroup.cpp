@@ -1252,33 +1252,55 @@ template <typename Ty> struct OPERATION<Ty, 9> { static Ty calculate(Ty a, Ty b)
 
 static const char * const operation_names[] = { "add", "max", "min", "mul", "and", "or", "xor", "logical_and", "logical_or", "logical_xor" };
 
+template <typename Ty>
+bool is_floating_point()
+{
+    return std::is_floating_point<Ty>::value || std::is_same<Ty, subgroups::cl_half>::value;
+}
+
+template <typename Ty, int Which>
+void genrand(Ty *x, Ty *t, cl_int *m, int ns, int nw, int ng)
+{
+    int nj = (nw + ns - 1) / ns;
+
+    for (int k = 0; k < ng; ++k) {
+        for (int j = 0; j < nj; ++j) {
+            int ii = j * ns;
+            int n = ii + ns > nw ? nw - ii : ns;
+
+            for (int i = 0; i < n; ++i) {
+                cl_ulong x;
+                if ((Which == 0 || Which == 3) && is_floating_point<Ty>()) {
+                    // work around different results depending on operation order
+                    // by having input with little precision
+                    x = genrand_int32(gMTdata) % 64;
+                }
+                else {
+                    x = genrand_int64(gMTdata);
+                    if (Which >= 7 && Which <= 9 && ((x >> 32) & 1) == 0)
+                        x = 0; // increase probability of false
+                }
+                t[ii + i] = static_cast<Ty>(x);
+            }
+        }
+
+        // Now map into work group using map from device
+        for (int j = 0; j < nw; ++j) {
+            int i = m[4 * j + 1] * ns + m[4 * j];
+            x[j] = t[i];
+        }
+
+        x += nw;
+        m += 4 * nw;
+    }
+}
+
 // Reduce functions
 template <typename Ty, int Which>
 struct RED {
     static void gen(Ty *x, Ty *t, cl_int *m, int ns, int nw, int ng)
     {
-        int i, ii, j, k, n;
-        int nj = (nw + ns - 1)/ns;
-
-        ii = 0;
-        for (k=0; k<ng; ++k) {
-            for (j=0; j<nj; ++j) {
-                ii = j*ns;
-                n = ii + ns > nw ? nw - ii : ns;
-
-                for (i=0; i<n; ++i)
-                    t[ii+i] = (Ty)((int)(genrand_int32(gMTdata) & 0x7fffffff) % ns + 1);
-            }
-
-            // Now map into work group using map from device
-            for (j=0;j<nw;++j) {
-                i = m[4*j+1]*ns + m[4*j];
-                x[j] = t[i];
-            }
-
-            x += nw;
-        m += 4*nw;
-        }
+        genrand<Ty, Which>(x, t, m, ns, nw, ng);
     }
 
     static int chk(Ty *x, Ty *y, Ty *mx, Ty *my, cl_int *m, int ns, int nw, int ng)
@@ -1328,33 +1350,12 @@ struct RED {
 
 // DESCRIPTION:
 // Test for reduce non uniform functions
-// Which: 0 - add, 1 - max, 2 - min, 3 - mul, 4 - and, 5 - or, 6 - xor
+// Which: 0 - add, 1 - max, 2 - min, 3 - mul, 4 - and, 5 - or, 6 - xor, 7 - logical and, 8 - logical or, 9 - logical xor
 template <typename Ty, int Which>
 struct RED_NU {
     static void gen(Ty *x, Ty *t, cl_int *m, int ns, int nw, int ng)
     {
-        int i, ii, j, k, n;
-        int nj = (nw + ns - 1) / ns;
-
-        ii = 0;
-        for (k = 0; k < ng; ++k) {
-            for (j = 0; j < nj; ++j) {
-                ii = j * ns;
-                n = ii + ns > nw ? nw - ii : ns;
-
-                for (i = 0; i < n; ++i)
-                    t[ii + i] = (Ty)((int)(genrand_int32(gMTdata) & 0x7fffffff) % ns + 1);
-            }
-
-            // Now map into work group using map from device
-            for (j = 0; j < nw; ++j) {
-                i = m[4 * j + 1] * ns + m[4 * j];
-                x[j] = t[i];
-            }
-
-            x += nw;
-            m += 4 * nw;
-        }
+        genrand<Ty, Which>(x, t, m, ns, nw, ng);
     }
 
     static int chk(Ty *x, Ty *y, Ty *mx, Ty *my, cl_int *m, int ns, int nw, int ng)
@@ -1388,8 +1389,8 @@ struct RED_NU {
                 for (i = 0; i < n; ++i) {
                     rr = my[ii + i];
                     if (rr != tr) {
-                        log_error("ERROR: sub_group_non_uniform_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
-                            operation_names[Which], TypeName<Ty>::val(), i, j, k, static_cast<int>(rr), static_cast<int>(tr));
+                        log_error("ERROR: sub_group_non_uniform_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %.17g, expected %.17g\n",
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k, static_cast<double>(rr), static_cast<double>(tr));
                         return -1;
                     }
                 }
@@ -1411,30 +1412,7 @@ template <typename Ty, int Which>
 struct RED_CLU {
     static void gen(Ty *x, Ty *t, cl_int *m, int ns, int nw, int ng)
     {
-        int nj = (nw + ns - 1) / ns;
-
-        for (int k = 0; k < ng; ++k) {
-            for (int j = 0; j < nj; ++j) {
-                int ii = j * ns;
-                int n = ii + ns > nw ? nw - ii : ns;
-
-                for (int i = 0; i < n; ++i) {
-                    int x = (int)(genrand_int32(gMTdata) & 0x7fffffff) % ns + 1;
-                    if (Which >= 7 && Which <= 9 && (x & 4) == 0)
-                        x = 0; // increase probability of false
-                    t[ii + i] = (Ty) x;
-                }
-            }
-
-            // Now map into work group using map from device
-            for (int j = 0; j < nw; ++j) {
-                int i = m[4 * j + 1] * ns + m[4 * j];
-                x[j] = t[i];
-            }
-
-            x += nw;
-            m += 4 * nw;
-        }
+        genrand<Ty, Which>(x, t, m, ns, nw, ng);
     }
 
     static int chk(Ty *x, Ty *y, Ty *mx, Ty *my, cl_int *m, int ns, int nw, int ng)
@@ -1475,8 +1453,8 @@ struct RED_CLU {
                     Ty rr = my[ii + i];
                     tr = clusters_results[i / CLUSTER_SIZE];
                     if (rr != tr) {
-                        log_error("ERROR: sub_group_clustered_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d, expected %d\n",
-                            operation_names[Which], TypeName<Ty>::val(), i, j, k, static_cast<int>(rr), static_cast<int>(tr));
+                        log_error("ERROR: sub_group_clustered_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %.17g, expected %.17g\n",
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k, static_cast<double>(rr), static_cast<double>(tr));
                         return -1;
                     }
                 }
@@ -1493,33 +1471,12 @@ struct RED_CLU {
 
 // DESCRIPTION:
 // Test for scan inclusive non uniform functions
-// Which: 0 - add, 1 - max, 2 - min, 3 - mul, 4 - and, 5 - or, 6 - xor
+// Which: 0 - add, 1 - max, 2 - min, 3 - mul, 4 - and, 5 - or, 6 - xor, 7 - logical and, 8 - logical or, 9 - logical xor
 template <typename Ty, int Which>
 struct SCIN_NU {
     static void gen(Ty *x, Ty *t, cl_int *m, int ns, int nw, int ng)
     {
-        int i, ii, j, k, n;
-        int nj = (nw + ns - 1) / ns;
-
-        ii = 0;
-        for (k = 0; k < ng; ++k) {          // for each work_group
-            for (j = 0; j < nj; ++j) {      // for each subgroup
-                ii = j * ns;
-                n = ii + ns > nw ? nw - ii : ns;
-
-                for (i = 0; i < n; ++i)
-                    t[ii+i] = (Ty)((int)(genrand_int32(gMTdata) & 0x7fffffff) % ns + 1);
-            }
-
-            // Now map into work group using map from device
-            for (j = 0; j < nw; ++j) {
-                i = m[4 * j + 1] * ns + m[4 * j];
-                x[j] = t[i];
-            }
-
-            x += nw;
-            m += 4 * nw;
-        }
+        genrand<Ty, Which>(x, t, m, ns, nw, ng);
     }
 
     static int chk(Ty *x, Ty *y, Ty *mx, Ty *my, cl_int *m, int ns, int nw, int ng)
@@ -1547,8 +1504,8 @@ struct SCIN_NU {
                     tr = OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
                     rr = my[ii + i];
                     if (rr != tr) {
-                        log_error("ERROR: sub_group_non_uniform_scan_inclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
-                            operation_names[Which], TypeName<Ty>::val(), i, j, k, rr, tr);
+                        log_error("ERROR: sub_group_non_uniform_scan_inclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %.17g, expected %.17g\n",
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k, static_cast<double>(rr), static_cast<double>(tr));
                         return -1;
                     }
                 }
@@ -1567,29 +1524,7 @@ template <typename Ty, int Which>
 struct SCIN {
     static void gen(Ty *x, Ty *t, cl_int *m, int ns, int nw, int ng)
     {
-        int i, ii, j, k, n;
-        int nj = (nw + ns - 1)/ns;
-
-        ii = 0;
-        for (k=0; k<ng; ++k) {
-            for (j=0; j<nj; ++j) {
-                ii = j*ns;
-                n = ii + ns > nw ? nw - ii : ns;
-
-                for (i=0; i<n; ++i)
-                    // t[ii+i] = (Ty)((int)(genrand_int32(gMTdata) & 0x7fffffff) % ns + 1);
-                    t[ii+i] = (Ty)i;
-            }
-
-            // Now map into work group using map from device
-            for (j=0;j<nw;++j) {
-                i = m[4*j+1]*ns + m[4*j];
-                x[j] = t[i];
-            }
-
-            x += nw;
-        m += 4*nw;
-        }
+        genrand<Ty, Which>(x, t, m, ns, nw, ng);
     }
 
     static int chk(Ty *x, Ty *y, Ty *mx, Ty *my, cl_int *m, int ns, int nw, int ng)
@@ -1639,28 +1574,7 @@ template <typename Ty, int Which>
 struct SCEX {
     static void gen(Ty *x, Ty *t, cl_int *m, int ns, int nw, int ng)
     {
-        int i, ii, j, k, n;
-        int nj = (nw + ns - 1)/ns;
-
-        ii = 0;
-        for (k=0; k<ng; ++k) {
-            for (j=0; j<nj; ++j) {
-                ii = j*ns;
-                n = ii + ns > nw ? nw - ii : ns;
-
-                for (i=0; i<n; ++i)
-                    t[ii+i] = (Ty)((int)(genrand_int32(gMTdata) & 0x7fffffff) % ns + 1);
-            }
-
-            // Now map into work group using map from device
-            for (j=0;j<nw;++j) {
-                i = m[4*j+1]*ns + m[4*j];
-                x[j] = t[i];
-            }
-
-            x += nw;
-        m += 4*nw;
-        }
+        genrand<Ty, Which>(x, t, m, ns, nw, ng);
     }
 
     static int chk(Ty *x, Ty *y, Ty *mx, Ty *my, cl_int *m, int ns, int nw, int ng)
@@ -1712,32 +1626,13 @@ struct SCEX {
     }
 };
 
-// Broadcast functios
+// Scan Exclusive non uniform functions
+// Which: 0 - add, 1 - max, 2 - min, 3 - mul, 4 - and, 5 - or, 6 - xor, 7 - logical and, 8 - logical or, 9 - logical xor
 template <typename Ty, int Which>
 struct SCEX_NU {
     static void gen(Ty *x, Ty *t, cl_int *m, int ns, int nw, int ng)
     {
-        int i, ii, j, k, n;
-        int nj = (nw + ns - 1) / ns;
-
-        ii = 0;
-        for (k = 0; k < ng; ++k) {          // for each work_group
-            for (j = 0; j < nj; ++j) {      // for each subgroup
-                ii = j * ns;
-                n = ii + ns > nw ? nw - ii : ns;
-
-                for (i = 0; i < n; ++i)
-                    t[ii + i] = (Ty)((int)(genrand_int32(gMTdata) & 0x7fffffff) % ns + 1);
-            }
-
-            // Now map into work group using map from device
-            for (j = 0; j < nw; ++j) {
-                i = m[4 * j + 1] * ns + m[4 * j];
-                x[j] = t[i];
-            }
-            x += nw;
-            m += 4 * nw;
-        }
+        genrand<Ty, Which>(x, t, m, ns, nw, ng);
     }
 
     static int chk(Ty *x, Ty *y, Ty *mx, Ty *my, cl_int *m, int ns, int nw, int ng)
@@ -1764,8 +1659,8 @@ struct SCEX_NU {
                     rr = my[ii + i];
 
                     if (rr != tr) {
-                        log_error("ERROR: sub_group_non_uniform_scan_exclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %d , expected %d\n",
-                            operation_names[Which], TypeName<Ty>::val(), i, j, k, static_cast<int>(rr), static_cast<int>(tr));
+                        log_error("ERROR: sub_group_non_uniform_scan_exclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %.17g, expected %.17g\n",
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k, static_cast<double>(rr), static_cast<double>(tr));
                         return -1;
                     }
 
@@ -2747,7 +2642,7 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
     error |= test<cl_uint4, BALLOT3<cl_uint4, 2>, G, L>::run(device, context, queue, num_elements, "test_sub_group_ballot_exclusive_scan", ballot_exclusive_scan_source, 0, required_extensions);
     error |= test<cl_uint4, BALLOT3<cl_uint4, 3>, G, L>::run(device, context, queue, num_elements, "test_sub_group_ballot_find_lsb", ballot_find_lsb_source, 0, required_extensions);
     error |= test<cl_uint4, BALLOT3<cl_uint4, 4>, G, L>::run(device, context, queue, num_elements, "test_sub_group_ballot_find_msb", ballot_find_msb_source, 0, required_extensions);
-    
+
     required_extensions = { "cl_khr_subgroup_non_uniform_arithmetic" };
     error |= test<cl_int, SCIN_NU<cl_int, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, SCIN_NU<cl_uint, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
