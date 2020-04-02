@@ -19,12 +19,12 @@
 #include "testHarness.h"
 #include "kernelHelpers.h"
 #include "typeWrappers.h"
+#include "workgroup_func_templates.h"
 
 #include <limits>
 #include <vector>
 #undef min
 #undef max
-#define NON_UNIFORM 4
 // Some template helpers
 namespace subgroups {
     struct cl_char3 {
@@ -907,7 +907,7 @@ struct test {
         for (std::string extension : required_extensions) {
             if (!is_extension_available(device, extension.c_str())) {
                 log_info("The extension %s not supported on this device. SKIP testing - kernel %s data type %s\n", extension.c_str(), kname, TypeName<Ty>::val());
-                return 0;
+                //return 0;
             }
             build_kernel_code += "#pragma OPENCL EXTENSION " + extension + ": enable\n";
         }
