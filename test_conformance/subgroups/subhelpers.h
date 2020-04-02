@@ -907,7 +907,7 @@ struct test {
         for (std::string extension : required_extensions) {
             if (!is_extension_available(device, extension.c_str())) {
                 log_info("The extension %s not supported on this device. SKIP testing - kernel %s data type %s\n", extension.c_str(), kname, TypeName<Ty>::val());
-                //return 0;
+                return 0;
             }
             build_kernel_code += "#pragma OPENCL EXTENSION " + extension + ": enable\n";
         }
