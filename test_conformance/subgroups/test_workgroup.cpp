@@ -17,6 +17,7 @@
 #include "subhelpers.h"
 #include "harness/conversions.h"
 #include "harness/typeWrappers.h"
+#include <bitset>
 
 static const char * ballot_source =
 "__kernel void test_sub_group_ballot(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -24,8 +25,8 @@ static const char * ballot_source =
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
 "    Type x = in[gid];\n"
-"    uint4 value = sub_group_ballot(x.s0);"
-"    out[gid] = value ;"
+"    uint4 value = sub_group_ballot(x.s0);\n"
+"    out[gid] = value;\n"
 "}\n";
 static const char * inverse_ballot_source =
 "__kernel void test_sub_group_inverse_ballot(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -33,13 +34,13 @@ static const char * inverse_ballot_source =
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
 "    Type x = in[gid];\n"
-"    cl_uint4 value = (10,0,0,0);"
-"    if (sub_group_inverse_ballot(x)) {"
-"       value = (1,0,0,0);"
-"    } else {"
-"       value = (0,0,0,0);"
-"    }"
-"    out[gid] = value ;"
+"    uint4 value = (uint4)(10,0,0,0);\n"
+"    if (sub_group_inverse_ballot(x)) {\n"
+"       value = (uint4)(1,0,0,0);\n"
+"    } else {\n"
+"       value = (uint4)(0,0,0,0);\n"
+"    }\n"
+"    out[gid] = value;\n"
 "}\n";
 static const char * ballot_bit_extract_source =
 "__kernel void test_sub_group_ballot_bit_extract(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -47,14 +48,14 @@ static const char * ballot_bit_extract_source =
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
 "    Type x = in[gid];\n"
-"    uint index = xy[gid].z;"
-"    uint4 value = (10,0,0,0);"
-"    if (sub_group_ballot_bit_extract(x, index)) {"
-"       value = (1,0,0,0);"
-"    } else {"
-"       value = (0,0,0,0);"
-"    }"
-"    out[gid] = value ;"
+"    uint index = xy[gid].z;\n"
+"    uint4 value = (uint4)(10,0,0,0);\n"
+"    if (sub_group_ballot_bit_extract(x, index)) {\n"
+"       value = (uint4)(1,0,0,0);\n"
+"    } else {\n"
+"       value = (uint4)(0,0,0,0);\n"
+"    }\n"
+"    out[gid] = value;\n"
 "}\n";
 static const char * ballot_bit_count_source =
 "__kernel void test_sub_group_ballot_bit_count(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -62,9 +63,9 @@ static const char * ballot_bit_count_source =
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
 "    Type x = in[gid];\n"
-"    uint4 value = (0,0,0,0);"
-"    value = (sub_group_ballot_bit_count(x),0,0,0);"
-"    out[gid] = value ;"
+"    uint4 value = (uint4)(0,0,0,0);\n"
+"    value = (uint4)(sub_group_ballot_bit_count(x),0,0,0);\n"
+"    out[gid] = value;\n"
 "}\n";
 static const char * ballot_inclusive_scan_source =
 "__kernel void test_sub_group_ballot_inclusive_scan(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -72,9 +73,9 @@ static const char * ballot_inclusive_scan_source =
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
 "    Type x = in[gid];\n"
-"    uint4 value = (0,0,0,0);"
-"    value = (sub_group_ballot_inclusive_scan(x),0,0,0);"
-"    out[gid] = value ;"
+"    uint4 value = (uint4)(0,0,0,0);\n"
+"    value = (uint4)(sub_group_ballot_inclusive_scan(x),0,0,0);\n"
+"    out[gid] = value;\n"
 "}\n";
 static const char * ballot_exclusive_scan_source =
 "__kernel void test_sub_group_ballot_exclusive_scan(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -82,9 +83,9 @@ static const char * ballot_exclusive_scan_source =
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
 "    Type x = in[gid];\n"
-"    uint4 value = (0,0,0,0);"
-"    value = (sub_group_ballot_exclusive_scan(x),0,0,0);"
-"    out[gid] = value ;"
+"    uint4 value = (uint4)(0,0,0,0);\n"
+"    value = (uint4)(sub_group_ballot_exclusive_scan(x),0,0,0);\n"
+"    out[gid] = value;\n"
 "}\n";
 static const char * ballot_find_lsb_source =
 "__kernel void test_sub_group_ballot_find_lsb(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -92,9 +93,9 @@ static const char * ballot_find_lsb_source =
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
 "    Type x = in[gid];\n"
-"    uint4 value = (0,0,0,0);"
-"    value = (sub_group_ballot_find_lsb(x),0,0,0);"
-"    out[gid] = value ;"
+"    uint4 value = (uint4)(0,0,0,0);\n"
+"    value = (uint4)(sub_group_ballot_find_lsb(x),0,0,0);\n"
+"    out[gid] = value;\n"
 "}\n";
 static const char * ballot_find_msb_source =
 "__kernel void test_sub_group_ballot_find_msb(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -102,8 +103,8 @@ static const char * ballot_find_msb_source =
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
 "    Type x = in[gid];\n"
-"    uint4 value = (0,0,0,0);"
-"    value = (sub_group_ballot_find_msb(x),0,0,0);"
+"    uint4 value = (uint4)(0,0,0,0);"
+"    value = (uint4)(sub_group_ballot_find_msb(x),0,0,0);"
 "    out[gid] = value ;"
 "}\n";
 static const char * shuffle_xor_source =
@@ -143,45 +144,50 @@ static const char * get_subgroup_ge_mask_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
+"    xy[gid].z = get_max_sub_group_size();\n"
 "    Type x = in[gid];\n"
 "    uint4 mask = get_sub_group_ge_mask();"
-"    out[gid] = mask\n"
+"    out[gid] = mask;\n"
 "}\n";
 static const char * get_subgroup_gt_mask_source =
 "__kernel void test_get_sub_group_gt_mask(const __global Type *in, __global int4 *xy, __global Type *out)\n"
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
+"    xy[gid].z = get_max_sub_group_size();\n"
 "    Type x = in[gid];\n"
 "    uint4 mask = get_sub_group_gt_mask();"
-"    out[gid] = mask\n"
+"    out[gid] = mask;\n"
 "}\n";
 static const char * get_subgroup_le_mask_source =
 "__kernel void test_get_sub_group_le_mask(const __global Type *in, __global int4 *xy, __global Type *out)\n"
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
+"    xy[gid].z = get_max_sub_group_size();\n"
 "    Type x = in[gid];\n"
 "    uint4 mask = get_sub_group_le_mask();"
-"    out[gid] = mask\n"
+"    out[gid] = mask;\n"
 "}\n";
 static const char * get_subgroup_lt_mask_source =
 "__kernel void test_get_sub_group_lt_mask(const __global Type *in, __global int4 *xy, __global Type *out)\n"
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
+"    xy[gid].z = get_max_sub_group_size();\n"
 "    Type x = in[gid];\n"
 "    uint4 mask = get_sub_group_lt_mask();"
-"    out[gid] = mask\n"
+"    out[gid] = mask;\n"
 "}\n";
 static const char * get_subgroup_eq_mask_source =
 "__kernel void test_get_sub_group_eq_mask(const __global Type *in, __global int4 *xy, __global Type *out)\n"
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
+"    xy[gid].z = get_max_sub_group_size();\n"
 "    Type x = in[gid];\n"
 "    uint4 mask = get_sub_group_eq_mask();"
-"    out[gid] = mask\n"
+"    out[gid] = mask;\n"
 "}\n";
 static const char * elect_source =
 "__kernel void test_elect(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -189,9 +195,8 @@ static const char * elect_source =
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
 "    Type x = in[gid];\n"
-"    int am_i_elected = sub_group_elect();"
+"    int am_i_elected = sub_group_elect();\n"
 "    out[gid] = am_i_elected;\n" //one in subgroup true others false.
-"    printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , am_i_elected = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], am_i_elected);"
 "}\n";
 static const char * any_source =
 "__kernel void test_any(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -214,10 +219,9 @@ static const char * non_uniform_any_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
-"    if (xy[gid].x < NON_UNIFORM) {"
-"        out[gid] = sub_group_any(in[gid]);\n"
-"    }"
-"printf(\"gid = %d, sub group local id = %d, sub group id = %d, out[gid] = %d , in[gid] = %d\\n\",gid,xy[gid].x, xy[gid].y, out[gid], in[gid]);"
+"    if (xy[gid].x < NON_UNIFORM) {\n"
+"        out[gid] = sub_group_non_uniform_any(in[gid]);\n"
+"    }\n"
 "}\n";
 static const char * non_uniform_all_source =
 "__kernel void test_non_uniform_all(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -225,7 +229,7 @@ static const char * non_uniform_all_source =
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
 "    if (xy[gid].x < NON_UNIFORM) {"
-"        out[gid] = sub_group_all(in[gid]);\n"
+"        out[gid] = sub_group_non_uniform_all(in[gid]);\n"
 "    }"
 "}\n";
 static const char * non_uniform_all_equal_source =
@@ -252,10 +256,9 @@ static const char * bcast_non_uniform_source =
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
 "    Type x = in[gid];\n"
-" if (xy[gid].x < NON_UNIFORM) {" // broadcast 4 values , other values are 0
+" if (xy[gid].x < NON_UNIFORM) {\n" // broadcast 4 values , other values are 0
 "    out[gid] = sub_group_broadcast(x, xy[gid].z);\n"
-"}"
-"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
+" }\n"
 "}\n";
 static const char * bcast_first_source =
 "__kernel void test_bcast_first(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -264,7 +267,6 @@ static const char * bcast_first_source =
 "    XY(xy,gid);\n"
 "    Type x = in[gid];\n"
 "    out[gid] = sub_group_broadcast_first(x);\n"
-"printf(\"gid = %d, sub group local id = %d, sub group id = %d, x form in = %d, new_set = %d, out[gid] = %d , x = %d\\n\",gid,xy[gid].x, xy[gid].y, x, xy[gid].z, out[gid], x);"
 "}\n";
 
 static const char * redadd_source =
@@ -815,83 +817,36 @@ cl_uint set_bit(cl_uint bit_value, cl_uint number, cl_uint position) {
     number ^= (-(bit_value) ^ number) & (1UL << position);
     return number;
 }
-cl_uint4 generate_bit_mask(cl_uint subgroup_local_id, std::string mask_type) {
+cl_uint4 generate_bit_mask(cl_uint subgroup_local_id, std::string mask_type, cl_uint max_sub_group_size) {
+    typedef std::bitset<128> bs128;
+    bs128 mask128;
     cl_uint4 mask;
-    cl_uint first_el = 0;
-    cl_uint second_el = 0;
-    cl_uint third_el = 0;
-    cl_uint fourth_el = 0;
-    cl_uint pos = subgroup_local_id % 32;
-    if (mask_type == "eq") {
-        if (subgroup_local_id < 32) {
-            first_el = set_bit(1, 0, pos);
-        }
-        if (32 <= subgroup_local_id && subgroup_local_id < 64) {
-            second_el = set_bit(1, 0, pos);
-        }
-        if (64 <= subgroup_local_id && subgroup_local_id < 96) {
-            third_el = set_bit(1, 0, pos);
-        }
-        if (96 <= subgroup_local_id && subgroup_local_id < 128) {
-            fourth_el = set_bit(1, 0, pos);
-        }
-    }
+    cl_uint pos = subgroup_local_id;
+    if (mask_type == "eq")
+        mask128.set(pos);
     if (mask_type == "le" || mask_type == "lt") {
-        cl_uint value = 0;
-        for (int i = 0; i <= pos; i++) {
-            value = set_bit(1, value, i);
-        }
-        if (mask_type == "lt") {
-            value = set_bit(0, value, pos);
-        }
-        if (subgroup_local_id <= 32) {
-            first_el = value;
-        }
-        if (32 < subgroup_local_id && subgroup_local_id <= 64) {
-            second_el = value;
-            first_el = 0xFFFFFFFF;
-        }
-        if (64 < subgroup_local_id && subgroup_local_id <= 96) {
-            third_el = value;
-            second_el = 0xFFFFFFFF;
-            first_el = 0xFFFFFFFF;
-        }
-        if (96 < subgroup_local_id && subgroup_local_id <= 128) {
-            fourth_el = value;
-            third_el = 0xFFFFFFFF;
-            second_el = 0xFFFFFFFF;
-            first_el = 0xFFFFFFFF;
-        }
+        for (cl_uint i = 0; i <= pos; i++)
+            mask128.set(i);
+        if (mask_type == "lt")
+            mask128.reset(pos);
     }
     if (mask_type == "ge" || mask_type == "gt") {
-        cl_uint value = 1;
-        for (cl_uint i = pos; i <= 31; i++) {
-            value = set_bit(1, value, i);
-        }
-        if (mask_type == "gt") {
-            value = set_bit(0, value, pos);
-        }
-        if (subgroup_local_id <= 32) {
-            first_el = value;
-            second_el = 0xFFFFFFFF;
-            third_el = 0xFFFFFFFF;
-            fourth_el = 0xFFFFFFFF;
-        }
-        if (32 < subgroup_local_id && subgroup_local_id <= 64) {
-            second_el = value;
-            third_el = 0xFFFFFFFF;
-            fourth_el = 0xFFFFFFFF;
-        }
-        if (64 < subgroup_local_id && subgroup_local_id <= 96) {
-            third_el = value;
-            fourth_el = 0xFFFFFFFF;
-        }
-        if (96 < subgroup_local_id && subgroup_local_id <= 128) {
-            fourth_el = value;
-        }
+        for (cl_uint i = pos; i < max_sub_group_size; i++)
+            mask128.set(i);
+        if (mask_type == "gt")
+            mask128.reset(pos);
     }
-    printf("Fourth = %x, Third = %x, Second = %x, First = %x\n", fourth_el, third_el, second_el, first_el);
-    mask = {first_el,second_el,third_el,fourth_el};
+
+    // convert std::bitset<128> to uint4
+    auto const uint_mask = bs128{ static_cast<unsigned long>(-1) };
+    mask.s0 = (mask128 & uint_mask).to_ulong();
+    mask128 >>= 32;
+    mask.s1 = (mask128 & uint_mask).to_ulong();
+    mask128 >>= 32;
+    mask.s2 = (mask128 & uint_mask).to_ulong();
+    mask128 >>= 32;
+    mask.s3 = (mask128 & uint_mask).to_ulong();
+
     return mask;
 }
 template <typename Ty, int Which = 0>
@@ -1020,29 +975,25 @@ struct SMASK {
                 n = ii + ns > nw ? nw - ii : ns;
                 // Produce expected masks for each work item in the subgroup
                 for (i = 0; i < n; ++i) {
-                    // l - random subgroup local id
-                    l = (int)(genrand_int32(gMTdata) & 0x7fffffff) % (d > n ? n : d);
-                    int midx = 4 * ii + 4 * i ; // take subgroup local id - index;
-                    m[midx] = (cl_int)l;        // take subgroup local id - value;
+                    int midx = 4 * ii + 4 * i;
+                    cl_uint max_sub_group_size = m[midx+2];
                     cl_uint4 expected_mask = { 0 };
                     if (Which == 0) {
-                        expected_mask = generate_bit_mask(m[midx], "eq");
+                        expected_mask = generate_bit_mask(i, "eq", max_sub_group_size);
                     }
                     if (Which == 1) {
-                        expected_mask = generate_bit_mask(m[midx], "ge");
+                        expected_mask = generate_bit_mask(i, "ge", max_sub_group_size);
                     }
                     if (Which == 2) {
-                        expected_mask = generate_bit_mask(m[midx], "gt");
+                        expected_mask = generate_bit_mask(i, "gt", max_sub_group_size);
                     }
                     if (Which == 3) {
-                        expected_mask = generate_bit_mask(m[midx], "le");
+                        expected_mask = generate_bit_mask(i, "le", max_sub_group_size);
                     }
                     if (Which == 4) {
-                        expected_mask = generate_bit_mask(m[midx], "lt");
+                        expected_mask = generate_bit_mask(i, "lt", max_sub_group_size);
                     }
-
                     set_value(t[ii + i], expected_mask);
-                    //log_info("wg = %d ,sg = %d, inside sg = %d, number == %d, l = %d, midx = %d\n", k, j, i, number, l, midx);
                 }
             }
 
@@ -1079,7 +1030,7 @@ struct SMASK {
                 for (i = 0; i < n; ++i) { // inside the subgroup
                     taa = mx[ii + i];     // read host input for subgroup
                     raa = my[ii + i];     // read device outputs for subgroup
-                    if (compare(raa, taa)) {
+                    if (!compare(raa, taa)) {
                         log_error("ERROR:  get_sub_group_%s_mask... mismatch for local id %d in sub group %d in group %d, obtained %d, expected %d\n", Which == 0 ? "eq" : Which == 1 ? "ge" : Which == 2 ? "gt" : Which == 3 ? "le" : "lt", i, j, k, raa, taa);
                         return -1;
                     }
@@ -1114,15 +1065,15 @@ struct AAN {
                 // Initialize data matrix indexed by local id and sub group id
                 switch (e) {
                 case 0:
-                    memset(&t[ii], 0, n * sizeof(cl_int));
+                    memset(&t[ii], 0, n * sizeof(Ty));
                     break;
                 case 1:
-                    memset(&t[ii], 0, n * sizeof(cl_int));
+                    memset(&t[ii], 0, n * sizeof(Ty));
                     i = (int)(genrand_int32(gMTdata) % (cl_uint)n);
                     t[ii + i] = 41;
                     break;
                 case 2:
-                    memset(&t[ii], 0xff, n * sizeof(cl_int));
+                    memset(&t[ii], 0xff, n * sizeof(Ty));
                     break;
                 }
             }
@@ -2917,10 +2868,10 @@ struct BALLOT {
                 n = ii + ns > nw ? nw - ii : ns;
 
                 // Check result
-
+                tr = { 0, 0, 0, 0 };
                 for (i = 0; i < n; ++i) {   // for each subgroup
                     int bit_value = 0;
-                    mx[ii + i].s0 > 0 ? bit_value = 1 : bit_value = 0;
+                    (mx[ii + i].s0 != 0) ? bit_value = 1 : bit_value = 0;
                     if (i < 32)
                         tr.s0 = set_bit(bit_value, tr.s0, i);
                     if (i >= 32 && i < 64)
@@ -2930,7 +2881,7 @@ struct BALLOT {
                     if (i >= 96 && i < 128)
                         tr.s3 = set_bit(bit_value, tr.s3, i);
                 }
-                rr = my[ii + i];
+                rr = my[ii];
                 if (!compare(rr, tr)) {
                     log_error("ERROR: sub_group_ballot mismatch for local id %d in sub group %d in group %d obtained {%d, %d, %d, %d}, expected {%d, %d, %d, %d}\n", i, j, k, rr.s0, rr.s1, rr.s2, rr.s3, tr.s0, tr.s1, tr.s2, tr.s3);
                     return -1;
@@ -2973,9 +2924,14 @@ struct BALLOT2 {
                     memset(&t[ii], 0, n * sizeof(Ty));
                     break;
                 case 1:
-                    memset(&t[ii], 0, n * sizeof(Ty));
-                    i = (int)(genrand_int32(gMTdata) % (cl_uint)n);
-                    set_value(t[ii + i], 41);
+                    // inverse ballot requires that value must be the same for all active invocations
+                    if (Which == 0)
+                        memset(&t[ii], (int)(genrand_int32(gMTdata)) & 0xff, n * sizeof(Ty));
+                    else {
+                        memset(&t[ii], 0, n * sizeof(Ty));
+                        i = (int)(genrand_int32(gMTdata) % (cl_uint)n);
+                        set_value(t[ii + i], 41);
+                    }
                     break;
                 case 2:
                     memset(&t[ii], 0xff, n * sizeof(Ty));
@@ -3019,16 +2975,16 @@ struct BALLOT2 {
 
                 for (i = 0; i < n; ++i) {   // for each subgroup
                     int bit_value = 0;
-                    int bit_mask = 1 << (Which == 0) ? i : l % 32; //from which value of bitfield bit verification will be done
+                    int bit_mask = 1 << ((Which == 0) ? i : l % 32); //from which value of bitfield bit verification will be done
 
                     if (i < 32)
-                        mx[ii + i].s0 & bit_mask > 0 ? bit_value = 1 : bit_value = 0;
+                        (mx[ii + i].s0 & bit_mask) > 0 ? bit_value = 1 : bit_value = 0;
                     if (i >= 32 && i < 64)
-                        mx[ii + i].s1 & bit_mask > 0 ? bit_value = 1 : bit_value = 0;
+                        (mx[ii + i].s1 & bit_mask) > 0 ? bit_value = 1 : bit_value = 0;
                     if (i >= 64 && i < 96)
-                        mx[ii + i].s2 & bit_mask > 0 ? bit_value = 1 : bit_value = 0;
+                        (mx[ii + i].s2 & bit_mask) > 0 ? bit_value = 1 : bit_value = 0;
                     if (i >= 96 && i < 128)
-                        mx[ii + i].s3 & bit_mask > 0 ? bit_value = 1 : bit_value = 0;
+                        (mx[ii + i].s3 & bit_mask) > 0 ? bit_value = 1 : bit_value = 0;
 
                     bit_value == 1 ? tr = { 1, 0, 0, 0 }: tr = { 0, 0 , 0, 0 };
 
@@ -3064,20 +3020,36 @@ struct BALLOT3 {
             for (j = 0; j < nj; ++j) {      // for each subgroup
                 ii = j * ns;
                 n = ii + ns > nw ? nw - ii : ns;
-                e = (int)(genrand_int32(gMTdata) % 3);
-                // Initialize data matrix indexed by local id and sub group id
-                switch (e) {
-                case 0:
-                    memset(&t[ii], 0, n * sizeof(Ty));
-                    break;
-                case 1:
-                    memset(&t[ii], 0, n * sizeof(Ty));
-                    i = (int)(genrand_int32(gMTdata) % (cl_uint)n);
-                    set_value(t[ii + i], 41);
-                    break;
-                case 2:
-                    memset(&t[ii], 0xff, n * sizeof(Ty));
-                    break;
+                if (Which >= 0 && Which <= 2) {
+                    // Initialize data matrix indexed by local id and sub group id
+                    e = (int)(genrand_int32(gMTdata) % 3);
+                    switch (e) {
+                    case 0:
+                        memset(&t[ii], 0, n * sizeof(Ty));
+                        break;
+                    case 1:
+                        memset(&t[ii], 0, n * sizeof(Ty));
+                        i = (int)(genrand_int32(gMTdata) % (cl_uint)n);
+                        set_value(t[ii + i], 41);
+                        break;
+                    case 2:
+                        memset(&t[ii], 0xff, n * sizeof(Ty));
+                        break;
+                    }
+                }
+                else {
+                    // Regarding to the spec, find lsb and find msb result is undefined behavior
+                    // if input value is zero, so generate only non-zero values.
+                    e = (int)(genrand_int32(gMTdata) % 2);
+                    switch (e) {
+                    case 0:
+                        memset(&t[ii], 0xff, n * sizeof(Ty));
+                        break;
+                    case 1:
+                        char x = (genrand_int32(gMTdata)) & 0xff;
+                        memset(&t[ii], x ? x : 1, n * sizeof(Ty));
+                        break;
+                    }
                 }
             }
 
@@ -3112,21 +3084,22 @@ struct BALLOT3 {
                 ii = j * ns;
                 n = ii + ns > nw ? nw - ii : ns;
                 // Check result
-
+                tr = {0, 0, 0, 0};
+                int min_id = -1;
+                int max_id = -1;
                 for (i = 0; i < n; ++i) {   // for each subgroup
                     int bit_value = 0;
-                    int min_id = -1;
-                    int max_id = -1;
-                    int bit_mask = 1 << i % 32; //from which value of bitfield bit verification will be done
+                    int bit_mask = 1 << (i % 32); //from which value of bitfield bit verification will be done
+                    bool inc = !(Which == 2 && i == 0);
 
                     if (i < 32)
-                        mx[ii + i].s0 & bit_mask > 0 ? bit_value = 1 : bit_value = 0;
+                        (mx[ii + i].s0 & bit_mask) > 0 ? bit_value = 1 : bit_value = 0;
                     if (i >= 32 && i < 64)
-                        mx[ii + i].s1 & bit_mask > 0 ? bit_value = 1 : bit_value = 0;
+                        (mx[ii + i].s1 & bit_mask) > 0 ? bit_value = 1 : bit_value = 0;
                     if (i >= 64 && i < 96)
-                        mx[ii + i].s2 & bit_mask > 0 ? bit_value = 1 : bit_value = 0;
+                        (mx[ii + i].s2 & bit_mask) > 0 ? bit_value = 1 : bit_value = 0;
                     if (i >= 96 && i < 128)
-                        mx[ii + i].s3 & bit_mask > 0 ? bit_value = 1 : bit_value = 0;
+                        (mx[ii + i].s3 & bit_mask) > 0 ? bit_value = 1 : bit_value = 0;
                     if (bit_value == 1) {
                         if (min_id == -1) {
                             min_id = i;
@@ -3135,12 +3108,7 @@ struct BALLOT3 {
                             max_id = i;
                         }
                     }
-                    if (Which == 2 && i == 0) {
-                        bit_value == 1 ? tr = { 0, 0, 0, 0 } : tr = { 0, 0 , 0, 0 };
-                    }
-                    else {
-                        bit_value == 1 ? tr = { tr.s0 + 1, 0, 0, 0 } : tr = { tr.s0, 0 , 0, 0 };
-                    }
+                    (inc && bit_value == 1) ? tr = { tr.s0 + 1, 0, 0, 0 } : tr = { tr.s0, 0 , 0, 0 };
 
                     rr = my[ii + i];
                     if (Which == 0 && i == n - 1) {
@@ -3156,9 +3124,6 @@ struct BALLOT3 {
                         }
                     }
                     else if (Which == 2) {
-                        if (bit_value == 1) {
-                            tr = { tr.s0 - 1, 0, 0, 0 };
-                        }
                         if (!compare(rr, tr)) {
                             log_error("ERROR: sub_group_ballot_exclusive_scan mismatch for local id %d in sub group %d in group %d obtained {%d, %d, %d, %d}, expected {%d, %d, %d, %d}\n", i, j, k, rr.s0, rr.s1, rr.s2, rr.s3, tr.s0, tr.s1, tr.s2, tr.s3);
                             return -1;
@@ -3283,6 +3248,7 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
 
     error |= test<cl_int, IFP, G, L>::run(device, context, queue, num_elements, "test_ifp", ifp_source, NUM_LOC + 1);
     error |= test<subgroups::cl_half, BC<subgroups::cl_half>, G, L>::run(device, context, queue, num_elements, "test_bcast", bcast_source, 0, required_extensions);
+
     required_extensions = {"cl_khr_subgroup_extended_types" };
     error |= test<cl_double2, BC<cl_double2>, G, L>::run(device, context, queue, num_elements, "test_bcast", bcast_source, 0, required_extensions);
     error |= test<subgroups::cl_double3, BC<subgroups::cl_double3>, G, L>::run(device, context, queue, num_elements, "test_bcast", bcast_source, 0, required_extensions);
@@ -3379,20 +3345,22 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
     error |= test<cl_ushort, SCEX<cl_ushort, 2>, G, L>::run(device, context, queue, num_elements, "test_scexmin", scexmin_source, 0, required_extensions);
     error |= test<cl_char, SCEX<cl_char, 2>, G, L>::run(device, context, queue, num_elements, "test_scexmin", scexmin_source, 0, required_extensions);
     error |= test<cl_uchar, SCEX<cl_uchar, 2>, G, L>::run(device, context, queue, num_elements, "test_scexmin", scexmin_source, 0, required_extensions);
+
     required_extensions = { "cl_khr_subgroup_non_uniform_vote" };
     error |= test<cl_int, ELECT, G, L>::run(device, context, queue, num_elements, "test_elect", elect_source, 0, required_extensions);
+    error |= test<int, AAN<int, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
     error |= test<int, AAN<int, 1>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all", non_uniform_all_source, 0, required_extensions);
-    error |= test<int, AAN<int, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
-    error |= test<cl_int, AAN<cl_int, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_uint, AAN<cl_uint, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_short, AAN<cl_short, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_ushort, AAN<cl_ushort, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_char, AAN<cl_char, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_uchar, AAN<cl_uchar, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_long, AAN<cl_long, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_ulong, AAN<cl_ulong, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_float, AAN<cl_float, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
-    error |= test<cl_double, AAN<cl_double, 0>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_any", non_uniform_any_source, 0, required_extensions);
+    error |= test<cl_char, AAN<cl_char, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_uchar, AAN<cl_uchar, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_short, AAN<cl_short, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_ushort, AAN<cl_ushort, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_int, AAN<cl_int, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_uint, AAN<cl_uint, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_long, AAN<cl_long, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_ulong, AAN<cl_ulong, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_float, AAN<cl_float, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<cl_double, AAN<cl_double, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+
     required_extensions = { "cl_khr_subgroup_ballot" };
     error |= test<cl_int, BC<cl_int, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
     error |= test<cl_int2, BC<cl_int2, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
@@ -3424,12 +3392,12 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
     error |= test<cl_double4, BC<cl_double4, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
     error |= test<cl_double8, BC<cl_double8, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
     error |= test<cl_double16, BC<cl_double16, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
-    error |= test<subgroups::cl_half, BC<subgroups::cl_half, 2>, G, L>::run(device, context, queue, num_elements, "test_btest_bcast_non_uniformcast", bcast_non_uniform_source, 0, required_extensions);
-    error |= test<subgroups::cl_half2, BC<subgroups::cl_half2, 2>, G, L>::run(device, context, queue, num_elements, "test_btest_bcast_non_uniformcast", bcast_non_uniform_source, 0, required_extensions);
-    error |= test<subgroups::cl_half3, BC<subgroups::cl_half3, 2>, G, L>::run(device, context, queue, num_elements, "test_btest_bcast_non_uniformcast", bcast_non_uniform_source, 0, required_extensions);
-    error |= test<subgroups::cl_half4, BC<subgroups::cl_half4, 2>, G, L>::run(device, context, queue, num_elements, "test_btest_bcast_non_uniformcast", bcast_non_uniform_source, 0, required_extensions);
-    error |= test<subgroups::cl_half8, BC<subgroups::cl_half8, 2>, G, L>::run(device, context, queue, num_elements, "test_btest_bcast_non_uniformcast", bcast_non_uniform_source, 0, required_extensions);
-    error |= test<subgroups::cl_half16, BC<subgroups::cl_half16, 2>, G, L>::run(device, context, queue, num_elements, "test_btest_bcast_non_uniformcast", bcast_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, BC<subgroups::cl_half, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half2, BC<subgroups::cl_half2, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half3, BC<subgroups::cl_half3, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half4, BC<subgroups::cl_half4, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half8, BC<subgroups::cl_half8, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half16, BC<subgroups::cl_half16, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
     error |= test<cl_float, BC<cl_float, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
     error |= test<cl_float2, BC<cl_float2, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
     error |= test<subgroups::cl_float3, BC<subgroups::cl_float3, 2>, G, L>::run(device, context, queue, num_elements, "test_bcast_non_uniform", bcast_non_uniform_source, 0, required_extensions);
@@ -3471,11 +3439,11 @@ test_work_group_functions(cl_device_id device, cl_context context, cl_command_qu
     error |= test<cl_uchar, BC<cl_uchar, 1>, G, L>::run(device, context, queue, num_elements, "test_bcast_first", bcast_first_source, 0, required_extensions);
     error |= test<cl_double, BC<cl_double, 1>, G, L>::run(device, context, queue, num_elements, "test_bcast_first", bcast_first_source, 0, required_extensions);
     error |= test<subgroups::cl_half, BC<subgroups::cl_half, 1>, G, L>::run(device, context, queue, num_elements, "test_bcast_first", bcast_first_source, 0, required_extensions);
-    error |= test<cl_uint4, SMASK<cl_uint4, 0>, G, L>::run(device, context, queue, num_elements, "test_get_subgroup_eq_mask_source", get_subgroup_eq_mask_source, 0, required_extensions);
-    error |= test<cl_uint4, SMASK<cl_uint4, 1>, G, L>::run(device, context, queue, num_elements, "test_get_subgroup_ge_mask_source", get_subgroup_ge_mask_source, 0, required_extensions);
-    error |= test<cl_uint4, SMASK<cl_uint4, 2>, G, L>::run(device, context, queue, num_elements, "test_get_subgroup_gt_mask_source", get_subgroup_gt_mask_source, 0, required_extensions);
-    error |= test<cl_uint4, SMASK<cl_uint4, 3>, G, L>::run(device, context, queue, num_elements, "test_get_subgroup_le_mask_source", get_subgroup_le_mask_source, 0, required_extensions);
-    error |= test<cl_uint4, SMASK<cl_uint4, 4>, G, L>::run(device, context, queue, num_elements, "test_get_subgroup_lt_mask_source", get_subgroup_lt_mask_source, 0, required_extensions);
+    error |= test<cl_uint4, SMASK<cl_uint4, 0>, G, L>::run(device, context, queue, num_elements, "test_get_sub_group_eq_mask", get_subgroup_eq_mask_source, 0, required_extensions);
+    error |= test<cl_uint4, SMASK<cl_uint4, 1>, G, L>::run(device, context, queue, num_elements, "test_get_sub_group_ge_mask", get_subgroup_ge_mask_source, 0, required_extensions);
+    error |= test<cl_uint4, SMASK<cl_uint4, 2>, G, L>::run(device, context, queue, num_elements, "test_get_sub_group_gt_mask", get_subgroup_gt_mask_source, 0, required_extensions);
+    error |= test<cl_uint4, SMASK<cl_uint4, 3>, G, L>::run(device, context, queue, num_elements, "test_get_sub_group_le_mask", get_subgroup_le_mask_source, 0, required_extensions);
+    error |= test<cl_uint4, SMASK<cl_uint4, 4>, G, L>::run(device, context, queue, num_elements, "test_get_sub_group_lt_mask", get_subgroup_lt_mask_source, 0, required_extensions);
     error |= test<cl_uint4, BALLOT<cl_uint4>, G, L>::run(device, context, queue, num_elements, "test_sub_group_ballot", ballot_source, 0, required_extensions);
     error |= test<cl_uint4, BALLOT2<cl_uint4, 0>, G, L>::run(device, context, queue, num_elements, "test_sub_group_inverse_ballot", inverse_ballot_source, 0, required_extensions);
     error |= test<cl_uint4, BALLOT2<cl_uint4, 1>, G, L>::run(device, context, queue, num_elements, "test_sub_group_ballot_bit_extract", ballot_bit_extract_source, 0, required_extensions);
