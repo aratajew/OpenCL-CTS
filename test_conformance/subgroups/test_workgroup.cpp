@@ -1090,7 +1090,12 @@ struct AAN {
         int nj = (nw + ns - 1) / ns;
         cl_int taa, raa;
 
-        log_info("  sub_group_non_uniform_%s...\n", Which == 0 ? "any" : (Which == 1 ? "all" : "all_equal"));
+        if (Which == 0)
+            log_info("  sub_group_non_uniform_any...\n");
+        else if (Which == 1)
+            log_info("  sub_group_non_uniform_all...\n");
+        else if (Which == 2)
+            log_info("  sub_group_non_uniform_all_equal(%s)...\n", TypeName<Ty>::val());
 
         for (k = 0; k < ng; ++k) {      // for each work_group
             // Map to array indexed to array indexed by local ID and sub group
@@ -1122,11 +1127,8 @@ struct AAN {
                 }
 
                 // Check result
-                for (i = 0; i < n; ++i) {
+                for (i = 0; i < n && i < NON_UNIFORM; ++i) {
                     raa = my[ii + i] != 0;
-                    if (i > NON_UNIFORM - 1) {
-                        taa = 0; // behind non uniform group zeros in memory
-                    }
                     if (raa != taa) {
                         log_error("ERROR: sub_group_non_uniform_%s mismatch for local id %d in sub group %d in group %d, obtained %d, expected %d\n",
                             Which == 0 ? "any" : (Which == 1 ? "all" : "all_equal"), i, j, k, raa, taa);
@@ -1780,8 +1782,8 @@ struct BC {
                 }
                 else {
                     for (i = 0; i < n; ++i) {
-                        if (Which == 2 && i > NON_UNIFORM - 1) {
-                            set_value(tr, 0);   // non uniform case - only first 4 workitems should broadcast. Others have zeros - tr is expected zero value
+                        if (Which == 2 && i >= NON_UNIFORM) {
+                            break;   // non uniform case - only first 4 workitems should broadcast. Others are undefined.
                         }
                         rr = my[ii + i];        // read device outputs for work_item in the subgroup
                         if (!compare(rr, tr)) {
