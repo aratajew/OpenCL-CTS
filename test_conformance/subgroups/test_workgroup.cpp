@@ -17,6 +17,7 @@
 #include "subhelpers.h"
 #include "harness/conversions.h"
 #include "harness/typeWrappers.h"
+#include <bitset>
 
 static const char * ballot_source =
 "__kernel void test_sub_group_ballot(const __global Type *in, __global int4 *xy, __global Type *out)\n"
@@ -143,6 +144,7 @@ static const char * get_subgroup_ge_mask_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
+"    xy[gid].z = get_max_sub_group_size();\n"
 "    Type x = in[gid];\n"
 "    uint4 mask = get_sub_group_ge_mask();"
 "    out[gid] = mask;\n"
@@ -152,6 +154,7 @@ static const char * get_subgroup_gt_mask_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
+"    xy[gid].z = get_max_sub_group_size();\n"
 "    Type x = in[gid];\n"
 "    uint4 mask = get_sub_group_gt_mask();"
 "    out[gid] = mask;\n"
@@ -161,6 +164,7 @@ static const char * get_subgroup_le_mask_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
+"    xy[gid].z = get_max_sub_group_size();\n"
 "    Type x = in[gid];\n"
 "    uint4 mask = get_sub_group_le_mask();"
 "    out[gid] = mask;\n"
@@ -170,6 +174,7 @@ static const char * get_subgroup_lt_mask_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
+"    xy[gid].z = get_max_sub_group_size();\n"
 "    Type x = in[gid];\n"
 "    uint4 mask = get_sub_group_lt_mask();"
 "    out[gid] = mask;\n"
@@ -179,6 +184,7 @@ static const char * get_subgroup_eq_mask_source =
 "{\n"
 "    int gid = get_global_id(0);\n"
 "    XY(xy,gid);\n"
+"    xy[gid].z = get_max_sub_group_size();\n"
 "    Type x = in[gid];\n"
 "    uint4 mask = get_sub_group_eq_mask();"
 "    out[gid] = mask;\n"
@@ -811,88 +817,36 @@ cl_uint set_bit(cl_uint bit_value, cl_uint number, cl_uint position) {
     number ^= (-(bit_value) ^ number) & (1UL << position);
     return number;
 }
-cl_uint4 generate_bit_mask(cl_uint subgroup_local_id, std::string mask_type) {
+cl_uint4 generate_bit_mask(cl_uint subgroup_local_id, std::string mask_type, cl_uint max_sub_group_size) {
+    typedef std::bitset<128> bs128;
+    bs128 mask128;
     cl_uint4 mask;
-    cl_uint first_el = 0;
-    cl_uint second_el = 0;
-    cl_uint third_el = 0;
-    cl_uint fourth_el = 0;
-    cl_uint pos = subgroup_local_id % 32;
-    if (mask_type == "eq") {
-        if (subgroup_local_id < 32) {
-            first_el = set_bit(1, 0, pos);
-            second_el = 0xFFFFFFFF;
-            third_el = 0xFFFFFFFF;
-            fourth_el = 0xFFFFFFFF;
-        }
-        if (32 <= subgroup_local_id && subgroup_local_id < 64) {
-            second_el = set_bit(1, 0, pos);
-            third_el = 0xFFFFFFFF;
-            fourth_el = 0xFFFFFFFF;
-        }
-        if (64 <= subgroup_local_id && subgroup_local_id < 96) {
-            third_el = set_bit(1, 0, pos);
-            fourth_el = 0xFFFFFFFF;
-        }
-        if (96 <= subgroup_local_id && subgroup_local_id < 128) {
-            fourth_el = set_bit(1, 0, pos);
-        }
-    }
+    cl_uint pos = subgroup_local_id;
+    if (mask_type == "eq")
+        mask128.set(pos);
     if (mask_type == "le" || mask_type == "lt") {
-        cl_uint value = 0;
-        for (int i = 0; i <= pos; i++) {
-            value = set_bit(1, value, i);
-        }
-        if (mask_type == "lt") {
-            value = set_bit(0, value, pos);
-        }
-        if (subgroup_local_id <= 32) {
-            first_el = value;
-            second_el = 0xFFFFFFFF;
-            third_el = 0xFFFFFFFF;
-            fourth_el = 0xFFFFFFFF;
-        }
-        if (32 < subgroup_local_id && subgroup_local_id <= 64) {
-            second_el = value;
-            third_el = 0xFFFFFFFF;
-            fourth_el = 0xFFFFFFFF;
-        }
-        if (64 < subgroup_local_id && subgroup_local_id <= 96) {
-            third_el = value;
-            fourth_el = 0xFFFFFFFF;
-        }
-        if (96 < subgroup_local_id && subgroup_local_id <= 128) {
-            fourth_el = value;
-        }
+        for (cl_uint i = 0; i <= pos; i++)
+            mask128.set(i);
+        if (mask_type == "lt")
+            mask128.reset(pos);
     }
     if (mask_type == "ge" || mask_type == "gt") {
-        cl_uint value = 1;
-        for (cl_uint i = pos; i <= 31; i++) {
-            value = set_bit(1, value, i);
-        }
-        if (mask_type == "gt") {
-            value = set_bit(0, value, pos);
-        }
-        if (subgroup_local_id <= 32) {
-            first_el = value;
-            second_el = 0xFFFFFFFF;
-            third_el = 0xFFFFFFFF;
-            fourth_el = 0xFFFFFFFF;
-        }
-        if (32 < subgroup_local_id && subgroup_local_id <= 64) {
-            second_el = value;
-            third_el = 0xFFFFFFFF;
-            fourth_el = 0xFFFFFFFF;
-        }
-        if (64 < subgroup_local_id && subgroup_local_id <= 96) {
-            third_el = value;
-            fourth_el = 0xFFFFFFFF;
-        }
-        if (96 < subgroup_local_id && subgroup_local_id <= 128) {
-            fourth_el = value;
-        }
+        for (cl_uint i = pos; i < max_sub_group_size; i++)
+            mask128.set(i);
+        if (mask_type == "gt")
+            mask128.reset(pos);
     }
-    mask = {first_el,second_el,third_el,fourth_el};
+
+    // convert std::bitset<128> to uint4
+    auto const uint_mask = bs128{ static_cast<unsigned long>(-1) };
+    mask.s0 = (mask128 & uint_mask).to_ulong();
+    mask128 >>= 32;
+    mask.s1 = (mask128 & uint_mask).to_ulong();
+    mask128 >>= 32;
+    mask.s2 = (mask128 & uint_mask).to_ulong();
+    mask128 >>= 32;
+    mask.s3 = (mask128 & uint_mask).to_ulong();
+
     return mask;
 }
 template <typename Ty, int Which = 0>
@@ -1021,29 +975,25 @@ struct SMASK {
                 n = ii + ns > nw ? nw - ii : ns;
                 // Produce expected masks for each work item in the subgroup
                 for (i = 0; i < n; ++i) {
-                    // l - random subgroup local id
-                    l = (int)(genrand_int32(gMTdata) & 0x7fffffff) % (d > n ? n : d);
-                    int midx = 4 * ii + 4 * i ; // take subgroup local id - index;
-                    m[midx] = (cl_int)l;        // take subgroup local id - value;
+                    int midx = 4 * ii + 4 * i;
+                    cl_uint max_sub_group_size = m[midx+2];
                     cl_uint4 expected_mask = { 0 };
                     if (Which == 0) {
-                        expected_mask = generate_bit_mask(m[midx], "eq");
+                        expected_mask = generate_bit_mask(i, "eq", max_sub_group_size);
                     }
                     if (Which == 1) {
-                        expected_mask = generate_bit_mask(m[midx], "ge");
+                        expected_mask = generate_bit_mask(i, "ge", max_sub_group_size);
                     }
                     if (Which == 2) {
-                        expected_mask = generate_bit_mask(m[midx], "gt");
+                        expected_mask = generate_bit_mask(i, "gt", max_sub_group_size);
                     }
                     if (Which == 3) {
-                        expected_mask = generate_bit_mask(m[midx], "le");
+                        expected_mask = generate_bit_mask(i, "le", max_sub_group_size);
                     }
                     if (Which == 4) {
-                        expected_mask = generate_bit_mask(m[midx], "lt");
+                        expected_mask = generate_bit_mask(i, "lt", max_sub_group_size);
                     }
-
                     set_value(t[ii + i], expected_mask);
-                    //log_info("wg = %d ,sg = %d, inside sg = %d, number == %d, l = %d, midx = %d\n", k, j, i, number, l, midx);
                 }
             }
 
@@ -1080,7 +1030,7 @@ struct SMASK {
                 for (i = 0; i < n; ++i) { // inside the subgroup
                     taa = mx[ii + i];     // read host input for subgroup
                     raa = my[ii + i];     // read device outputs for subgroup
-                    if (compare(raa, taa)) {
+                    if (!compare(raa, taa)) {
                         log_error("ERROR:  get_sub_group_%s_mask... mismatch for local id %d in sub group %d in group %d, obtained %d, expected %d\n", Which == 0 ? "eq" : Which == 1 ? "ge" : Which == 2 ? "gt" : Which == 3 ? "le" : "lt", i, j, k, raa, taa);
                         return -1;
                     }
