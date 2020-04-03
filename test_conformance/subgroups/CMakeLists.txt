@@ -6,6 +6,14 @@ set(${MODULE_NAME}_SOURCES
     test_queries.cpp
     test_workitem.cpp
     test_workgroup.cpp
+    test_workgroup_ballot.cpp
+    test_workgroup_clustered_reduce.cpp
+    test_workgroup_extended_types.cpp
+    test_workgroup_non_uniform_arithmetic.cpp
+    test_workgroup_non_uniform_vote.cpp
+    test_workgroup_shuffle.cpp
+    test_workgroup_shuffle_relative.cpp
+    workgroup_common_kernels.cpp
 )
 
 include(../CMakeCommon.txt)
