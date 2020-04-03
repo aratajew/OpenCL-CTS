@@ -815,8 +815,8 @@ cl_uint set_bit(cl_uint bit_value, cl_uint number, cl_uint position) {
     number ^= (-(bit_value) ^ number) & (1UL << position);
     return number;
 }
+typedef std::bitset<128> bs128;
 cl_uint4 generate_bit_mask(cl_uint subgroup_local_id, std::string mask_type, cl_uint max_sub_group_size) {
-    typedef std::bitset<128> bs128;
     bs128 mask128;
     cl_uint4 mask;
     cl_uint pos = subgroup_local_id;
@@ -2256,6 +2256,21 @@ struct BALLOT3 {
         }
     }
 
+    static bs128 getImportantBits(int sub_group_local_id, int sub_group_size) {
+        bs128 mask;
+        if (Which == 0 || Which == 3 || Which == 4) {
+            for (cl_uint i = 0; i < sub_group_size; ++i)
+                mask.set(i);
+        }
+        else if (Which == 1 || Which == 2) {
+            for (cl_uint i = 0; i <= sub_group_local_id; ++i)
+                mask.set(i);
+            if (Which == 2)
+                mask.reset(sub_group_local_id);
+        }
+        return mask;
+    }
+
     static int chk(Ty *x, Ty *y, Ty *mx, Ty *my, cl_int *m, int ns, int nw, int ng)
     {
         int ii, i, j, k, n;
@@ -2277,60 +2292,55 @@ struct BALLOT3 {
                 n = ii + ns > nw ? nw - ii : ns;
                 // Check result
                 tr = {0, 0, 0, 0};
-                int min_id = -1;
-                int max_id = -1;
                 for (i = 0; i < n; ++i) {   // for each subgroup
-                    int bit_value = 0;
-                    int bit_mask = 1 << (i % 32); //from which value of bitfield bit verification will be done
-                    bool inc = !(Which == 2 && i == 0);
-
-                    if (i < 32)
-                        (mx[ii + i].s0 & bit_mask) > 0 ? bit_value = 1 : bit_value = 0;
-                    if (i >= 32 && i < 64)
-                        (mx[ii + i].s1 & bit_mask) > 0 ? bit_value = 1 : bit_value = 0;
-                    if (i >= 64 && i < 96)
-                        (mx[ii + i].s2 & bit_mask) > 0 ? bit_value = 1 : bit_value = 0;
-                    if (i >= 96 && i < 128)
-                        (mx[ii + i].s3 & bit_mask) > 0 ? bit_value = 1 : bit_value = 0;
-                    if (bit_value == 1) {
-                        if (min_id == -1) {
-                            min_id = i;
-                        }
-                        if (max_id == -1 || max_id < i) {
-                            max_id = i;
-                        }
-                    }
-                    (inc && bit_value == 1) ? tr = { tr.s0 + 1, 0, 0, 0 } : tr = { tr.s0, 0 , 0, 0 };
+                    bs128 bs;
+                    // convert cl_uint4 input into std::bitset<128>
+                    bs |= bs128(mx[ii + i].s0) | (bs128(mx[ii + i].s1) << 32) | (bs128(mx[ii + i].s2) << 64) | (bs128(mx[ii + i].s3) << 96);
+                    bs &= getImportantBits(i, n);
 
                     rr = my[ii + i];
-                    if (Which == 0 && i == n - 1) {
+                    if (Which == 0) {
+                        tr.s0 = bs.count();
                         if (!compare(rr, tr)) {
                             log_error("ERROR: sub_group_ballot_bit_count mismatch for local id %d in sub group %d in group %d obtained {%d, %d, %d, %d}, expected {%d, %d, %d, %d}\n", i, j, k, rr.s0, rr.s1, rr.s2, rr.s3, tr.s0, tr.s1, tr.s2, tr.s3);
                             return -1;
                         }
                     }
                     else if (Which == 1) {
+                        tr.s0 = bs.count();
                         if (!compare(rr, tr)) {
                             log_error("ERROR: sub_group_ballot_inclusive_scan mismatch for local id %d in sub group %d in group %d obtained {%d, %d, %d, %d}, expected {%d, %d, %d, %d}\n", i, j, k, rr.s0, rr.s1, rr.s2, rr.s3, tr.s0, tr.s1, tr.s2, tr.s3);
                             return -1;
                         }
                     }
                     else if (Which == 2) {
+                        tr.s0 = bs.count();
                         if (!compare(rr, tr)) {
                             log_error("ERROR: sub_group_ballot_exclusive_scan mismatch for local id %d in sub group %d in group %d obtained {%d, %d, %d, %d}, expected {%d, %d, %d, %d}\n", i, j, k, rr.s0, rr.s1, rr.s2, rr.s3, tr.s0, tr.s1, tr.s2, tr.s3);
                             return -1;
                         }
                     }
-                    if ((Which == 3 || Which == 4) && i == n - 1) {
-                        if (min_id == -1) {
-                            min_id = 0;
+                    else if (Which == 3) {
+                        for (int id = 0; id < n; ++id) {
+                            if (bs.test(id)) {
+                                tr.s0 = id;
+                                break;
+                            }
                         }
-                        if (max_id == -1) {
-                            max_id = 0;
-                        }
-                        Which == 3 ? tr = { (cl_uint)min_id, 0, 0, 0 } : tr = { (cl_uint)max_id, 0, 0, 0 };
                         if (!compare(rr, tr)) {
-                            log_error("ERROR: sub_group_ballot_%s mismatch for local id %d in sub group %d in group %d obtained {%d, %d, %d, %d}, expected {%d, %d, %d, %d}\n", Which == 3 ? "find_lsb" : "find_msb", i, j, k, rr.s0, rr.s1, rr.s2, rr.s3, tr.s0, tr.s1, tr.s2, tr.s3);
+                            log_error("ERROR: sub_group_ballot_find_lsb mismatch for local id %d in sub group %d in group %d obtained {%d, %d, %d, %d}, expected {%d, %d, %d, %d}\n", i, j, k, rr.s0, rr.s1, rr.s2, rr.s3, tr.s0, tr.s1, tr.s2, tr.s3);
+                            return -1;
+                        }
+                    }
+                    if (Which == 4) {
+                        for (int id = n - 1; id >= 0; --id) {
+                            if (bs.test(id)) {
+                                tr.s0 = id;
+                                break;
+                            }
+                        }
+                        if (!compare(rr, tr)) {
+                            log_error("ERROR: sub_group_ballot_find_msb mismatch for local id %d in sub group %d in group %d obtained {%d, %d, %d, %d}, expected {%d, %d, %d, %d}\n", i, j, k, rr.s0, rr.s1, rr.s2, rr.s3, tr.s0, tr.s1, tr.s2, tr.s3);
                             return -1;
                         }
                     }
