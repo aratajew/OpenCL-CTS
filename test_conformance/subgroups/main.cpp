@@ -26,6 +26,13 @@ test_definition test_list[] = {
     ADD_TEST( sub_group_info ),
     ADD_TEST( work_item_functions ),
     ADD_TEST( work_group_functions ),
+    ADD_TEST( work_group_functions_extended_types),
+    ADD_TEST( work_group_functions_non_uniform_vote),
+    ADD_TEST( work_group_functions_ballot),
+    ADD_TEST( work_group_functions_non_uniform_arithmetic),
+    ADD_TEST( work_group_functions_clustered_reduce),
+    ADD_TEST( work_group_functions_shuffle),
+    ADD_TEST( work_group_functions_shuffle_relative),
     ADD_TEST( barrier_functions ),
 };
 

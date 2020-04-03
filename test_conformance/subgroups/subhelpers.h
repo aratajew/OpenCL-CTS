@@ -19,12 +19,17 @@
 #include "testHarness.h"
 #include "kernelHelpers.h"
 #include "typeWrappers.h"
-
 #include <limits>
 #include <vector>
 #undef min
 #undef max
+
 #define NON_UNIFORM 4
+
+// Adjust these individually below if desired/needed
+#define G 2000
+#define L 200
+
 // Some template helpers
 namespace subgroups {
     struct cl_char3 {

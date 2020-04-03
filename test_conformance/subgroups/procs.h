@@ -33,6 +33,13 @@ extern "C" {
 extern int test_sub_group_info(cl_device_id device, cl_context context, cl_command_queue queue, int num_elements);
 extern int test_work_item_functions(cl_device_id device, cl_context context, cl_command_queue queue, int num_elements);
 extern int test_work_group_functions(cl_device_id device, cl_context context, cl_command_queue queue, int num_elements);
+extern int test_work_group_functions_ballot(cl_device_id device, cl_context context, cl_command_queue queue, int num_elements);
+extern int test_work_group_functions_clustered_reduce(cl_device_id device, cl_context context, cl_command_queue queue, int num_elements);
+extern int test_work_group_functions_extended_types(cl_device_id device, cl_context context, cl_command_queue queue, int num_elements);
+extern int test_work_group_functions_non_uniform_arithmetic(cl_device_id device, cl_context context, cl_command_queue queue, int num_elements);
+extern int test_work_group_functions_non_uniform_vote(cl_device_id device, cl_context context, cl_command_queue queue, int num_elements);
+extern int test_work_group_functions_shuffle(cl_device_id device, cl_context context, cl_command_queue queue, int num_elements);
+extern int test_work_group_functions_shuffle_relative(cl_device_id device, cl_context context, cl_command_queue queue, int num_elements);
 extern int test_barrier_functions(cl_device_id device, cl_context context, cl_command_queue queue, int num_elements);
 extern int test_pipe_functions(cl_device_id device, cl_context context, cl_command_queue queue, int num_elements);
 
