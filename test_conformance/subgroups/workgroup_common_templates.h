@@ -163,8 +163,8 @@ struct BC {
                 }
                 else {
                     for (i = 0; i < n; ++i) {
-                        if (Which == 2 && i > NON_UNIFORM - 1) {
-                            set_value(tr, 0);   // non uniform case - only first 4 workitems should broadcast. Others have zeros - tr is expected zero value
+                        if (Which == 2 && i >= NON_UNIFORM) {
+                            break;   // non uniform case - only first 4 workitems should broadcast. Others are undefined.
                         }
                         rr = my[ii + i];        // read device outputs for work_item in the subgroup
                         if (!compare(rr, tr)) {
