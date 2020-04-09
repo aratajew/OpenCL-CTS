@@ -218,7 +218,7 @@ static float to_float(subgroups::cl_half x)
         exp -= 0xf + 10;
         break;
     }
-    float resullt = static_cast<float>(ldexp(significand, exp));
+    float result = static_cast<float>(ldexp(significand, exp));
     return x.data >> 15 ? -result : result;
 }
 
@@ -252,13 +252,13 @@ template <> struct OPERATION<subgroups::cl_half, 0> {
 
 template <> struct OPERATION<subgroups::cl_half, 1> {
     static subgroups::cl_half calculate(subgroups::cl_half a, subgroups::cl_half b) {
-        return to_float(a) > to_float(b) ? a : b;
+        return to_float(a) > to_float(b) || isnan_half(b) ? a : b;
     }
 };
 
 template <> struct OPERATION<subgroups::cl_half, 2> {
     static subgroups::cl_half calculate(subgroups::cl_half a, subgroups::cl_half b) {
-        return to_float(a) < to_float(b) ? a : b;
+        return to_float(a) < to_float(b) || isnan_half(b) ? a : b;
     }
 };
 
