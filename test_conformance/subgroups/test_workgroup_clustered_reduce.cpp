@@ -150,9 +150,9 @@ struct RED_CLU {
                 for (int i = 0; i < n; ++i) {
                     Ty rr = my[ii + i];
                     tr = clusters_results[i / CLUSTER_SIZE];
-                    if (rr != tr) {
-                        log_error("ERROR: sub_group_clustered_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %.17g, expected %.17g\n",
-                            operation_names[Which], TypeName<Ty>::val(), i, j, k, static_cast<double>(rr), static_cast<double>(tr));
+                    if (!compare(rr, tr)) {
+                        log_error("ERROR: sub_group_clustered_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d\n",
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k);
                         return -1;
                     }
                 }
@@ -183,7 +183,7 @@ test_work_group_functions_clustered_reduce(cl_device_id device, cl_context conte
     error |= test<cl_uchar, RED_CLU<cl_uchar, 0>, G, L>::run(device, context, queue, num_elements, "test_redadd_clustered", redadd_clustered_source, 0, required_extensions);
     error |= test<cl_float, RED_CLU<cl_float, 0>, G, L>::run(device, context, queue, num_elements, "test_redadd_clustered", redadd_clustered_source, 0, required_extensions);
     error |= test<cl_double, RED_CLU<cl_double, 0>, G, L>::run(device, context, queue, num_elements, "test_redadd_clustered", redadd_clustered_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, RED_CLU<subgroups::cl_half, 0>, G, L>::run(device, context, queue, num_elements, "test_redadd_clustered", redadd_clustered_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, RED_CLU<subgroups::cl_half, 0>, G, L>::run(device, context, queue, num_elements, "test_redadd_clustered", redadd_clustered_source, 0, required_extensions);
 
     error |= test<cl_int, RED_CLU<cl_int, 1>, G, L>::run(device, context, queue, num_elements, "test_redmax_clustered", redmax_clustered_source, 0, required_extensions);
     error |= test<cl_uint, RED_CLU<cl_uint, 1>, G, L>::run(device, context, queue, num_elements, "test_redmax_clustered", redmax_clustered_source, 0, required_extensions);
@@ -195,7 +195,7 @@ test_work_group_functions_clustered_reduce(cl_device_id device, cl_context conte
     error |= test<cl_uchar, RED_CLU<cl_uchar, 1>, G, L>::run(device, context, queue, num_elements, "test_redmax_clustered", redmax_clustered_source, 0, required_extensions);
     error |= test<cl_float, RED_CLU<cl_float, 1>, G, L>::run(device, context, queue, num_elements, "test_redmax_clustered", redmax_clustered_source, 0, required_extensions);
     error |= test<cl_double, RED_CLU<cl_double, 1>, G, L>::run(device, context, queue, num_elements, "test_redmax_clustered", redmax_clustered_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, RED_CLU<subgroups::cl_half, 1>, G, L>::run(device, context, queue, num_elements, "test_redmax_clustered", redmax_clustered_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, RED_CLU<subgroups::cl_half, 1>, G, L>::run(device, context, queue, num_elements, "test_redmax_clustered", redmax_clustered_source, 0, required_extensions);
 
     error |= test<cl_int, RED_CLU<cl_int, 2>, G, L>::run(device, context, queue, num_elements, "test_redmin_clustered", redmin_clustered_source, 0, required_extensions);
     error |= test<cl_uint, RED_CLU<cl_uint, 2>, G, L>::run(device, context, queue, num_elements, "test_redmin_clustered", redmin_clustered_source, 0, required_extensions);
@@ -207,7 +207,7 @@ test_work_group_functions_clustered_reduce(cl_device_id device, cl_context conte
     error |= test<cl_uchar, RED_CLU<cl_uchar, 2>, G, L>::run(device, context, queue, num_elements, "test_redmin_clustered", redmin_clustered_source, 0, required_extensions);
     error |= test<cl_float, RED_CLU<cl_float, 2>, G, L>::run(device, context, queue, num_elements, "test_redmin_clustered", redmin_clustered_source, 0, required_extensions);
     error |= test<cl_double, RED_CLU<cl_double, 2>, G, L>::run(device, context, queue, num_elements, "test_redmin_clustered", redmin_clustered_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, RED_CLU<subgroups::cl_half, 2>, G, L>::run(device, context, queue, num_elements, "test_redmin_clustered", redmin_clustered_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, RED_CLU<subgroups::cl_half, 2>, G, L>::run(device, context, queue, num_elements, "test_redmin_clustered", redmin_clustered_source, 0, required_extensions);
 
     error |= test<cl_int, RED_CLU<cl_int, 3>, G, L>::run(device, context, queue, num_elements, "test_redmul_clustered", redmul_clustered_source, 0, required_extensions);
     error |= test<cl_uint, RED_CLU<cl_uint, 3>, G, L>::run(device, context, queue, num_elements, "test_redmul_clustered", redmul_clustered_source, 0, required_extensions);
@@ -219,7 +219,7 @@ test_work_group_functions_clustered_reduce(cl_device_id device, cl_context conte
     error |= test<cl_uchar, RED_CLU<cl_uchar, 3>, G, L>::run(device, context, queue, num_elements, "test_redmul_clustered", redmul_clustered_source, 0, required_extensions);
     error |= test<cl_float, RED_CLU<cl_float, 3>, G, L>::run(device, context, queue, num_elements, "test_redmul_clustered", redmul_clustered_source, 0, required_extensions);
     error |= test<cl_double, RED_CLU<cl_double, 3>, G, L>::run(device, context, queue, num_elements, "test_redmul_clustered", redmul_clustered_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, RED_CLU<subgroups::cl_half, 3>, G, L>::run(device, context, queue, num_elements, "test_redmul_clustered", redmul_clustered_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, RED_CLU<subgroups::cl_half, 3>, G, L>::run(device, context, queue, num_elements, "test_redmul_clustered", redmul_clustered_source, 0, required_extensions);
 
     error |= test<cl_int, RED_CLU<cl_int, 4>, G, L>::run(device, context, queue, num_elements, "test_redand_clustered", redand_clustered_source, 0, required_extensions);
     error |= test<cl_uint, RED_CLU<cl_uint, 4>, G, L>::run(device, context, queue, num_elements, "test_redand_clustered", redand_clustered_source, 0, required_extensions);
