@@ -18,6 +18,42 @@
 #include "workgroup_common_kernels.h"
 #include "harness/typeWrappers.h"
 
+template <typename Ty, int Which>
+struct AAN_OPERATION;
+
+template <typename Ty>
+struct AAN_OPERATION<Ty, 0> {
+    static bool calculate(const Ty *mx)
+    {
+        bool taa = false;
+        for (int i = 0; i < NON_UNIFORM; ++i)
+            taa |= mx[i] != 0; // return non zero if value non zero at least for one
+        return taa;
+    }
+};
+
+template <typename Ty>
+struct AAN_OPERATION<Ty, 1> {
+    static bool calculate(const Ty *mx)
+    {
+        bool taa = true;
+        for (int i = 0; i < NON_UNIFORM; ++i)
+            taa &= mx[i] != 0; // return non zero if value non zero for all
+        return taa;
+    }
+};
+
+template <typename Ty>
+struct AAN_OPERATION<Ty, 2> {
+    static bool calculate(const Ty *mx)
+    {
+        bool taa = 1;
+        for (int i = 0; i < NON_UNIFORM; ++i)
+            taa &= compare_ordered(mx[i], mx[0]); // return non zero if all the same
+        return taa;
+    }
+};
+
 // DESCRIPTION :
 // Test any/all/all_equal non uniform test functions non uniform:
 // Which 0 - any, 1 - all, 2 - all equal
@@ -27,14 +63,13 @@ struct AAN {
     {
         int i, ii, j, k, n;
         int nj = (nw + ns - 1) / ns;
-        int e;
 
         ii = 0;
         for (k = 0; k < ng; ++k) {      // for each work_group
             for (j = 0; j < nj; ++j) {  // for each subgroup
                 ii = j * ns;
                 n = ii + ns > nw ? nw - ii : ns;
-                e = (int)(genrand_int32(gMTdata) % 3);
+                int e = genrand_int32(gMTdata) % 3;
 
                 // Initialize data matrix indexed by local id and sub group id
                 switch (e) {
@@ -44,7 +79,7 @@ struct AAN {
                 case 1:
                     memset(&t[ii], 0, n * sizeof(Ty));
                     i = (int)(genrand_int32(gMTdata) % (cl_uint)n);
-                    t[ii + i] = 41;
+                    set_value(t[ii + i], 41);
                     break;
                 case 2:
                     memset(&t[ii], 0xff, n * sizeof(Ty));
@@ -65,7 +100,6 @@ struct AAN {
     {
         int ii, i, j, k, n;
         int nj = (nw + ns - 1) / ns;
-        cl_int taa, raa;
 
         if (Which == 0)
             log_info("  sub_group_non_uniform_any...\n");
@@ -87,25 +121,12 @@ struct AAN {
                 n = ii + ns > nw ? nw - ii : ns;
 
                 // Compute target
-                if (Which == 0) {       // function any
-                    taa = 0;
-                    for (i = 0; i < NON_UNIFORM; ++i)
-                        taa |= mx[ii + i] != 0; // return non zero if value non zero at least for one
-                }
-                else if (Which == 1) {  // function all
-                    taa = 1;
-                    for (i = 0; i < NON_UNIFORM; ++i)
-                        taa &= mx[ii + i] != 0; // return non zero if value non zero for all
-                } else {                // function all equal
-                    taa = 1;
-                    for (i = 0; i < NON_UNIFORM; ++i) {
-                        taa &= mx[ii] == mx[ii + i]; // return non zero if all the same
-                    }
-                }
+                bool taa = AAN_OPERATION<Ty, Which>::calculate(mx + ii);
 
                 // Check result
+                static const Ty false_value {};
                 for (i = 0; i < n && i < NON_UNIFORM; ++i) {
-                    raa = my[ii + i] != 0;
+                    bool raa = !compare(my[ii + i], false_value);
                     if (raa != taa) {
                         log_error("ERROR: sub_group_non_uniform_%s mismatch for local id %d in sub group %d in group %d, obtained %d, expected %d\n",
                             Which == 0 ? "any" : (Which == 1 ? "all" : "all_equal"), i, j, k, raa, taa);
@@ -221,6 +242,7 @@ test_work_group_functions_non_uniform_vote(cl_device_id device, cl_context conte
     error |= test<cl_ulong, AAN<cl_ulong, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
     error |= test<cl_float, AAN<cl_float, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
     error |= test<cl_double, AAN<cl_double, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, AAN<subgroups::cl_half, 2>, G, L>::run(device, context, queue, num_elements, "test_non_uniform_all_equal", non_uniform_all_equal_source, 0, required_extensions);
 
     return error;
 }

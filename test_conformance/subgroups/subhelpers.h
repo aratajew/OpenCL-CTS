@@ -445,6 +445,20 @@ compare(const Ty &lhs, const Ty &rhs) {
 }
 
 template <typename Ty>
+inline bool compare_ordered(const Ty &lhs, const Ty &rhs) {
+    return lhs == rhs;
+}
+
+inline bool isnan_half(const subgroups::cl_half &x) {
+    return (x.data & 0x7fff) > 0x7c00;
+}
+
+template <>
+inline bool compare_ordered(const subgroups::cl_half &lhs, const subgroups::cl_half &rhs) {
+    return lhs.data == rhs.data && !isnan_half(lhs);
+}
+
+template <typename Ty>
 typename std::enable_if<!is_vector_type_half<Ty>::value>::type
 set_value(Ty &lhs, const cl_uint &rhs) {
     lhs.data = rhs;
