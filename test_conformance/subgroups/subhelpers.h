@@ -197,67 +197,35 @@ template<>
 struct scalar_type<cl_double16> { using type = cl_double; };
 
 template<typename Ty>
-struct is_vector_type3 {};
+struct is_scalar_type : std::false_type {};
 template<>
-struct is_vector_type3<subgroups::cl_uint3> : std::true_type {};
+struct is_scalar_type<cl_int> : std::true_type {};
 template<>
-struct is_vector_type3<subgroups::cl_int3> : std::true_type {};
+struct is_scalar_type<cl_uint> : std::true_type {};
 template<>
-struct is_vector_type3<subgroups::cl_ulong3> : std::true_type {};
+struct is_scalar_type<cl_short> : std::true_type {};
 template<>
-struct is_vector_type3<subgroups::cl_long3> : std::true_type {};
+struct is_scalar_type<cl_ushort> : std::true_type {};
 template<>
-struct is_vector_type3<subgroups::cl_ushort3> : std::true_type {};
+struct is_scalar_type<cl_char> : std::true_type {};
 template<>
-struct is_vector_type3<subgroups::cl_short3> : std::true_type {};
+struct is_scalar_type<cl_uchar> : std::true_type {};
 template<>
-struct is_vector_type3<subgroups::cl_uchar3> : std::true_type {};
+struct is_scalar_type<cl_long> : std::true_type {};
 template<>
-struct is_vector_type3<subgroups::cl_char3> : std::true_type {};
+struct is_scalar_type<cl_ulong> : std::true_type {};
 template<>
-struct is_vector_type3<subgroups::cl_float3> : std::true_type {};
+struct is_scalar_type<cl_double> : std::true_type {};
 template<>
-struct is_vector_type3<subgroups::cl_half3> : std::true_type {};
-template<>
-struct is_vector_type3<subgroups::cl_double3> : std::true_type {};
+struct is_scalar_type<cl_float> : std::true_type {};
 
 template<typename Ty>
-struct is_vector_type_half {};
+struct is_scalar_type_half : std::false_type {};
 template<>
-struct is_vector_type_half<subgroups::cl_half> : std::false_type {};
-template<>
-struct is_vector_type_half<subgroups::cl_half2> : std::true_type {};
-template<>
-struct is_vector_type_half<subgroups::cl_half4> : std::true_type {};
-template<>
-struct is_vector_type_half<subgroups::cl_half8> : std::true_type {};
-template<>
-struct is_vector_type_half<subgroups::cl_half16> : std::true_type {};
-
-
+struct is_scalar_type_half<subgroups::cl_half> : std::true_type {};
 
 template<typename Ty>
-struct is_vector_type {};
-template<>
-struct is_vector_type<cl_int> : std::false_type {};
-template<>
-struct is_vector_type<cl_uint> : std::false_type {};
-template<>
-struct is_vector_type<cl_long> : std::false_type {};
-template<>
-struct is_vector_type<cl_ulong> : std::false_type {};
-template<>
-struct is_vector_type<cl_float> : std::false_type {};
-template<>
-struct is_vector_type<cl_double> : std::false_type {};
-template<>
-struct is_vector_type<cl_short> : std::false_type {};
-template<>
-struct is_vector_type<cl_ushort> : std::false_type {};
-template<>
-struct is_vector_type<cl_char> : std::false_type {};
-template<>
-struct is_vector_type<cl_uchar> : std::false_type {};
+struct is_vector_type : std::false_type {};
 template<>
 struct is_vector_type<cl_uint2> : std::true_type {};
 template<>
@@ -339,6 +307,41 @@ struct is_vector_type<cl_double8> : std::true_type {};
 template<>
 struct is_vector_type<cl_double16> : std::true_type {};
 
+template<typename Ty>
+struct is_vector_type3 : std::false_type {};
+template<>
+struct is_vector_type3<subgroups::cl_uint3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_int3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_ulong3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_long3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_ushort3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_short3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_uchar3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_char3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_float3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_half3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_double3> : std::true_type {};
+
+template<typename Ty>
+struct is_vector_type_half : std::false_type {};
+template<>
+struct is_vector_type_half<subgroups::cl_half2> : std::true_type {};
+template<>
+struct is_vector_type_half<subgroups::cl_half4> : std::true_type {};
+template<>
+struct is_vector_type_half<subgroups::cl_half8> : std::true_type {};
+template<>
+struct is_vector_type_half<subgroups::cl_half16> : std::true_type {};
 
 template <typename Ty>
 typename std::enable_if<is_vector_type<Ty>::value, bool>::type
@@ -410,19 +413,19 @@ set_value(Ty &lhs, const cl_ulong &rhs) {
 }
 
 template <typename Ty>
-typename std::enable_if<!is_vector_type<Ty>::value, bool>::type
+typename std::enable_if<is_scalar_type<Ty>::value, bool>::type
 compare(const Ty &lhs, const Ty &rhs) {
     return lhs == rhs;
 }
 
 template <typename Ty>
-typename std::enable_if<!is_vector_type<Ty>::value>::type
+typename std::enable_if<is_scalar_type<Ty>::value>::type
 set_value(Ty &lhs, const cl_ulong &rhs) {
     lhs = static_cast<Ty>(rhs);
 }
 
 template <typename Ty>
-typename std::enable_if<!is_vector_type_half<Ty>::value, bool>::type
+typename std::enable_if<is_scalar_type_half<Ty>::value, bool>::type
 compare(const Ty &lhs, const Ty &rhs) {
     return lhs.data == rhs.data;
 }
@@ -442,7 +445,7 @@ inline bool compare_ordered(const subgroups::cl_half &lhs, const subgroups::cl_h
 }
 
 template <typename Ty>
-typename std::enable_if<!is_vector_type_half<Ty>::value>::type
+typename std::enable_if<is_scalar_type_half<Ty>::value>::type
 set_value(Ty &lhs, const cl_ulong &rhs) {
     lhs.data = rhs;
 }
