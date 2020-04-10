@@ -82,18 +82,19 @@ struct BALLOT {
 
                 // Check result
                 tr = { 0, 0, 0, 0 };
+                bs128 bs;
                 for (i = 0; i < n; ++i) {   // for each subgroup
-                    int bit_value = 0;
-                    (mx[ii + i].s0 != 0) ? bit_value = 1 : bit_value = 0;
-                    if (i < 32)
-                        tr.s0 = set_bit(bit_value, tr.s0, i);
-                    if (i >= 32 && i < 64)
-                        tr.s1 = set_bit(bit_value, tr.s1, i);
-                    if (i >= 64 && i < 96)
-                        tr.s2 = set_bit(bit_value, tr.s2, i);
-                    if (i >= 96 && i < 128)
-                        tr.s3 = set_bit(bit_value, tr.s3, i);
+                    (mx[ii + i].s0 != 0) ? bs.set(i) : bs.reset(i);
                 }
+                // convert bs to uint4
+                auto const uint_mask = bs128{ static_cast<unsigned long>(-1) };
+                tr.s0 = (bs & uint_mask).to_ulong();
+                bs >>= 32;
+                tr.s1 = (bs & uint_mask).to_ulong();
+                bs >>= 32;
+                tr.s2 = (bs & uint_mask).to_ulong();
+                bs >>= 32;
+                tr.s3 = (bs & uint_mask).to_ulong();
                 rr = my[ii];
                 if (!compare(rr, tr)) {
                     log_error("ERROR: sub_group_ballot mismatch for local id %d in sub group %d in group %d obtained {%d, %d, %d, %d}, expected {%d, %d, %d, %d}\n", i, j, k, rr.s0, rr.s1, rr.s2, rr.s3, tr.s0, tr.s1, tr.s2, tr.s3);
@@ -277,7 +278,7 @@ struct BALLOT3 {
         }
     }
 
-    static bs128 getImportantBits(int sub_group_local_id, int sub_group_size) {
+    static bs128 getImportantBits(cl_uint sub_group_local_id, cl_uint sub_group_size) {
         bs128 mask;
         if (Which == 0 || Which == 3 || Which == 4) {
             for (cl_uint i = 0; i < sub_group_size; ++i)
