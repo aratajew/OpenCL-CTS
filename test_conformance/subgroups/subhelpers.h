@@ -394,7 +394,7 @@ compare(const Ty &lhs, const Ty &rhs) {
 
 template <typename Ty>
 typename std::enable_if<is_vector_type<Ty>::value>::type
-set_value(Ty &lhs, const cl_uint &rhs) {
+set_value(Ty &lhs, const cl_ulong &rhs) {
     const int size = sizeof(Ty) / sizeof(typename scalar_type<Ty>::type);
     for (auto i = 0; i < size; ++i) {
         lhs.s[i] = rhs;
@@ -411,7 +411,7 @@ set_value(Ty &lhs, const Ty &rhs) {
 
 template <typename Ty, int N = 0 >
 typename std::enable_if<is_vector_type3<Ty>::value>::type
-set_value(Ty &lhs, const cl_uint &rhs) {
+set_value(Ty &lhs, const cl_ulong &rhs) {
     for (auto i = 0; i < 3; ++i) {
         lhs.data.s[i] = rhs;
     }
@@ -419,7 +419,7 @@ set_value(Ty &lhs, const cl_uint &rhs) {
 
 template <typename Ty, int N = 0 >
 typename std::enable_if<is_vector_type_half<Ty>::value>::type
-set_value(Ty &lhs, const cl_uint &rhs) {
+set_value(Ty &lhs, const cl_ulong &rhs) {
     const int size = sizeof(Ty) / sizeof(typename scalar_type<Ty>::type);
     for (auto i = 0; i < size; ++i) {
         lhs.data.s[i] = rhs;
@@ -434,7 +434,7 @@ compare(const Ty &lhs, const Ty &rhs) {
 
 template <typename Ty>
 typename std::enable_if<!is_vector_type<Ty>::value>::type
-set_value(Ty &lhs, const cl_uint &rhs) {
+set_value(Ty &lhs, const cl_ulong &rhs) {
     lhs = static_cast<Ty>(rhs);
 }
 
@@ -445,8 +445,22 @@ compare(const Ty &lhs, const Ty &rhs) {
 }
 
 template <typename Ty>
+inline bool compare_ordered(const Ty &lhs, const Ty &rhs) {
+    return lhs == rhs;
+}
+
+inline bool isnan_half(const subgroups::cl_half &x) {
+    return (x.data & 0x7fff) > 0x7c00;
+}
+
+template <>
+inline bool compare_ordered(const subgroups::cl_half &lhs, const subgroups::cl_half &rhs) {
+    return lhs.data == rhs.data && !isnan_half(lhs);
+}
+
+template <typename Ty>
 typename std::enable_if<!is_vector_type_half<Ty>::value>::type
-set_value(Ty &lhs, const cl_uint &rhs) {
+set_value(Ty &lhs, const cl_ulong &rhs) {
     lhs.data = rhs;
 }
 
@@ -605,13 +619,10 @@ template <> struct TypeDef<cl_uchar16> { static const char * val() { return "typ
 //template <> struct TypeDef<cl_half> { static const char * val() { return "typedef short Type;\n"; } };
 
 template <typename Ty, int Which> struct TypeIdentity;
-template <> struct TypeIdentity<subgroups::cl_half, 0> { static cl_half val() { return (cl_half)0.0; } };
-template <> struct TypeIdentity<subgroups::cl_half, 1> { static cl_half val() { return std::numeric_limits<cl_half>::min(); } };
-template <> struct TypeIdentity<subgroups::cl_half, 2> { static cl_half val() { return std::numeric_limits<cl_half>::max(); } };
-template <> struct TypeIdentity<subgroups::cl_half, 3> { static cl_half val() { return (cl_half)1; } };     //mul
-template <> struct TypeIdentity<subgroups::cl_half, 4> { static cl_half val() { return (cl_half)~0; } };    //and
-template <> struct TypeIdentity<subgroups::cl_half, 5> { static cl_half val() { return (cl_half)0; } };     //or
-template <> struct TypeIdentity<subgroups::cl_half, 6> { static cl_half val() { return (cl_half)0; } };     //xor
+template <> struct TypeIdentity<subgroups::cl_half, 0> { static subgroups::cl_half val() { return { 0x0000 }; } };     //add
+template <> struct TypeIdentity<subgroups::cl_half, 1> { static subgroups::cl_half val() { return { 0xfc00 }; } };     //max
+template <> struct TypeIdentity<subgroups::cl_half, 2> { static subgroups::cl_half val() { return { 0x7c00 }; } };     //min
+template <> struct TypeIdentity<subgroups::cl_half, 3> { static subgroups::cl_half val() { return { 0x3c00 }; } };     //mul
 
 template <> struct TypeIdentity<cl_uchar, 0> { static cl_uchar val() { return (cl_uchar)0; } };     //add
 template <> struct TypeIdentity<cl_uchar, 1> { static cl_uchar val() { return std::numeric_limits<cl_uchar>::min(); } }; //max
@@ -684,17 +695,11 @@ template <> struct TypeIdentity<cl_float, 0> { static cl_float val() { return 0.
 template <> struct TypeIdentity<cl_float, 1> { static cl_float val() { return -std::numeric_limits<float>::infinity(); } };
 template <> struct TypeIdentity<cl_float, 2> { static cl_float val() { return std::numeric_limits<float>::infinity(); } };
 template <> struct TypeIdentity<cl_float, 3> { static cl_float val() { return (cl_float)1; } };      //mul
-template <> struct TypeIdentity<cl_float, 4> { static cl_float val() { return (cl_float)~0; } };     //and
-template <> struct TypeIdentity<cl_float, 5> { static cl_float val() { return (cl_float)0; } };      //or
-template <> struct TypeIdentity<cl_float, 6> { static cl_float val() { return (cl_float)0; } };      //xor
 
 template <> struct TypeIdentity<cl_double, 0> { static cl_double val() { return 0.L; } };
 template <> struct TypeIdentity<cl_double, 1> { static cl_double val() { return -std::numeric_limits<double>::infinity(); } };
 template <> struct TypeIdentity<cl_double, 2> { static cl_double val() { return std::numeric_limits<double>::infinity(); } };
 template <> struct TypeIdentity<cl_double, 3> { static cl_double val() { return (cl_double)1; } };      //mul
-template <> struct TypeIdentity<cl_double, 4> { static cl_double val() { return (cl_double)~0; } };     //and
-template <> struct TypeIdentity<cl_double, 5> { static cl_double val() { return (cl_double)0; } };      //or
-template <> struct TypeIdentity<cl_double, 6> { static cl_double val() { return (cl_double)0; } };      //xor
 
 template <typename Ty> struct TypeCheck;
 template <> struct TypeCheck<cl_uint> { static bool val(cl_device_id) { return true; } };
@@ -839,17 +844,17 @@ run_kernel(cl_context context, cl_command_queue queue, cl_kernel kernel, size_t 
         test_error(error, "clCreateBuffer failed");
     }
 
-    error = clSetKernelArg(kernel, 0, sizeof(in), (void *)&in);
+    error = clSetKernelArg(kernel, 0, sizeof(in), &in);
     test_error(error, "clSetKernelArg failed");
 
-    error = clSetKernelArg(kernel, 1, sizeof(xy), (void *)&xy);
+    error = clSetKernelArg(kernel, 1, sizeof(xy), &xy);
     test_error(error, "clSetKernelArg failed");
 
-    error = clSetKernelArg(kernel, 2, sizeof(out), (void *)&out);
+    error = clSetKernelArg(kernel, 2, sizeof(out), &out);
     test_error(error, "clSetKernelArg failed");
 
     if (tsize) {
-        error = clSetKernelArg(kernel, 3, sizeof(tmp), (void *)&tmp);
+        error = clSetKernelArg(kernel, 3, sizeof(tmp), &tmp);
         test_error(error, "clSetKernelArg failed");
     }
 

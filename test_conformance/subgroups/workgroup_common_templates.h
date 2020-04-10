@@ -203,6 +203,71 @@ template <typename Ty> struct OPERATION<Ty, 7> { static Ty calculate(Ty a, Ty b)
 template <typename Ty> struct OPERATION<Ty, 8> { static Ty calculate(Ty a, Ty b) { return a || b; } };
 template <typename Ty> struct OPERATION<Ty, 9> { static Ty calculate(Ty a, Ty b) { return !a ^ !b; } };
 
+static float to_float(subgroups::cl_half x)
+{
+    int significand = x.data & 0x3ff;
+    int exp = x.data >> 10 & 0x1f;
+    switch (exp) {
+    case 0:
+        exp -= 0xf + 9;
+        break;
+    case 0x1f:
+        return significand ? NAN : x.data >> 15 ? -INFINITY : INFINITY;
+    default:
+        significand |= 0x400;
+        exp -= 0xf + 10;
+        break;
+    }
+    float result = static_cast<float>(ldexp(significand, exp));
+    return x.data >> 15 ? -result : result;
+}
+
+static subgroups::cl_half to_half(float x)
+{
+    if (x < 0) {
+        subgroups::cl_half y = to_half(-x);
+        y.data |= 0x8000;
+        return y;
+    }
+    if (isnan(x))
+        return { 0x7fff };
+    if (isinf(x))
+        return { 0x7c00 };
+    int exp;
+    int significand = static_cast<int>(frexp(x, &exp) * (1 << 11));
+    if (significand == 0 || exp <= -24)
+        return { 0 };
+    if (exp >= 17)
+        return { 0x7c00 };
+    if (exp <= -14)
+        return { static_cast<uint16_t>(significand >> (-13 - exp)) };
+    return { static_cast<uint16_t>((exp + 0xe) << 10 | (significand & 0x3ff)) };
+}
+
+template <> struct OPERATION<subgroups::cl_half, 0> {
+    static subgroups::cl_half calculate(subgroups::cl_half a, subgroups::cl_half b) {
+        return to_half(to_float(a) + to_float(b));
+    }
+};
+
+template <> struct OPERATION<subgroups::cl_half, 1> {
+    static subgroups::cl_half calculate(subgroups::cl_half a, subgroups::cl_half b) {
+        return to_float(a) > to_float(b) || isnan_half(b) ? a : b;
+    }
+};
+
+template <> struct OPERATION<subgroups::cl_half, 2> {
+    static subgroups::cl_half calculate(subgroups::cl_half a, subgroups::cl_half b) {
+        return to_float(a) < to_float(b) || isnan_half(b) ? a : b;
+    }
+};
+
+template <> struct OPERATION<subgroups::cl_half, 3> {
+    static subgroups::cl_half calculate(subgroups::cl_half a, subgroups::cl_half b) {
+        return to_half(to_float(a) * to_float(b));
+    }
+};
+
 static const char * const operation_names[] = { "add", "max", "min", "mul", "and", "or", "xor", "logical_and", "logical_or", "logical_xor" };
 
 template <typename Ty>
@@ -233,7 +298,7 @@ void genrand(Ty *x, Ty *t, cl_int *m, int ns, int nw, int ng)
                     if (Which >= 7 && Which <= 9 && ((x >> 32) & 1) == 0)
                         x = 0; // increase probability of false
                 }
-                t[ii + i] = static_cast<Ty>(x);
+                set_value(t[ii + i], x);
             }
         }
 
@@ -512,22 +577,5 @@ struct SHF {
         return 0;
     }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #endif

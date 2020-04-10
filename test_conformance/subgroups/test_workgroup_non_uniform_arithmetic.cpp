@@ -52,9 +52,9 @@ struct SCIN_NU {
                 for (i = 0; i < n && i < NON_UNIFORM; ++i) {   // inside the subgroup
                     tr = OPERATION<Ty, Which>::calculate(tr, mx[ii + i]);
                     rr = my[ii + i];
-                    if (rr != tr) {
-                        log_error("ERROR: sub_group_non_uniform_scan_inclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %.17g, expected %.17g\n",
-                            operation_names[Which], TypeName<Ty>::val(), i, j, k, static_cast<double>(rr), static_cast<double>(tr));
+                    if (!compare(rr, tr)) {
+                        log_error("ERROR: sub_group_non_uniform_scan_inclusive_%s(%s) mismatch for local id %d in sub group %d in group %d\n",
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k);
                         return -1;
                     }
                 }
@@ -101,9 +101,9 @@ struct SCEX_NU {
                 for (i = 0; i < n && i < NON_UNIFORM; ++i) {   // inside the subgroup
                     rr = my[ii + i];
 
-                    if (rr != tr) {
-                        log_error("ERROR: sub_group_non_uniform_scan_exclusive_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %.17g, expected %.17g\n",
-                            operation_names[Which], TypeName<Ty>::val(), i, j, k, static_cast<double>(rr), static_cast<double>(tr));
+                    if (!compare(rr, tr)) {
+                        log_error("ERROR: sub_group_non_uniform_scan_exclusive_%s(%s) mismatch for local id %d in sub group %d in group %d\n",
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k);
                         return -1;
                     }
 
@@ -159,9 +159,9 @@ struct RED_NU {
                 // Check result
                 for (i = 0; i < n; ++i) {
                     rr = my[ii + i];
-                    if (rr != tr) {
-                        log_error("ERROR: sub_group_non_uniform_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d obtained %.17g, expected %.17g\n",
-                            operation_names[Which], TypeName<Ty>::val(), i, j, k, static_cast<double>(rr), static_cast<double>(tr));
+                    if (!compare(rr, tr)) {
+                        log_error("ERROR: sub_group_non_uniform_reduce_%s(%s) mismatch for local id %d in sub group %d in group %d\n",
+                            operation_names[Which], TypeName<Ty>::val(), i, j, k);
                         return -1;
                     }
                 }
@@ -486,7 +486,7 @@ test_work_group_functions_non_uniform_arithmetic(cl_device_id device, cl_context
     error |= test<cl_uchar, SCIN_NU<cl_uchar, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
     error |= test<cl_float, SCIN_NU<cl_float, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
     error |= test<cl_double, SCIN_NU<cl_double, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, SCIN_NU<subgroups::cl_half, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, SCIN_NU<subgroups::cl_half, 0>, G, L>::run(device, context, queue, num_elements, "test_scinadd_non_uniform", scinadd_non_uniform_source, 0, required_extensions);
 
     error |= test<cl_int, SCIN_NU<cl_int, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, SCIN_NU<cl_uint, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
@@ -498,7 +498,7 @@ test_work_group_functions_non_uniform_arithmetic(cl_device_id device, cl_context
     error |= test<cl_uchar, SCIN_NU<cl_uchar, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
     error |= test<cl_float, SCIN_NU<cl_float, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
     error |= test<cl_double, SCIN_NU<cl_double, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, SCIN_NU<subgroups::cl_half, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, SCIN_NU<subgroups::cl_half, 1>, G, L>::run(device, context, queue, num_elements, "test_scinmax_non_uniform", scinmax_non_uniform_source, 0, required_extensions);
 
     error |= test<cl_int, SCIN_NU<cl_int, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, SCIN_NU<cl_uint, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
@@ -510,7 +510,7 @@ test_work_group_functions_non_uniform_arithmetic(cl_device_id device, cl_context
     error |= test<cl_uchar, SCIN_NU<cl_uchar, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
     error |= test<cl_float, SCIN_NU<cl_float, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
     error |= test<cl_double, SCIN_NU<cl_double, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, SCIN_NU<subgroups::cl_half, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, SCIN_NU<subgroups::cl_half, 2>, G, L>::run(device, context, queue, num_elements, "test_scinmin_non_uniform", scinmin_non_uniform_source, 0, required_extensions);
 
     error |= test<cl_int, SCIN_NU<cl_int, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, SCIN_NU<cl_uint, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
@@ -522,7 +522,7 @@ test_work_group_functions_non_uniform_arithmetic(cl_device_id device, cl_context
     error |= test<cl_uchar, SCIN_NU<cl_uchar, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
     error |= test<cl_float, SCIN_NU<cl_float, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
     error |= test<cl_double, SCIN_NU<cl_double, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, SCIN_NU<subgroups::cl_half, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, SCIN_NU<subgroups::cl_half, 3>, G, L>::run(device, context, queue, num_elements, "test_scinmul_non_uniform", scinmul_non_uniform_source, 0, required_extensions);
 
     error |= test<cl_int, SCIN_NU<cl_int, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, SCIN_NU<cl_uint, 4>, G, L>::run(device, context, queue, num_elements, "test_scinand_non_uniform", scinand_non_uniform_source, 0, required_extensions);
@@ -565,7 +565,7 @@ test_work_group_functions_non_uniform_arithmetic(cl_device_id device, cl_context
     error |= test<cl_uchar, SCEX_NU<cl_uchar, 0>, G, L>::run(device, context, queue, num_elements, "test_scexadd_non_uniform", scexadd_non_uniform_source, 0, required_extensions);
     error |= test<cl_float, SCEX_NU<cl_float, 0>, G, L>::run(device, context, queue, num_elements, "test_scexadd_non_uniform", scexadd_non_uniform_source, 0, required_extensions);
     error |= test<cl_double, SCEX_NU<cl_double, 0>, G, L>::run(device, context, queue, num_elements, "test_scexadd_non_uniform", scexadd_non_uniform_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, SCEX_NU<subgroups::cl_half, 0>, G, L>::run(device, context, queue, num_elements, "test_scexadd_non_uniform", scexadd_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, SCEX_NU<subgroups::cl_half, 0>, G, L>::run(device, context, queue, num_elements, "test_scexadd_non_uniform", scexadd_non_uniform_source, 0, required_extensions);
 
     error |= test<cl_int, SCEX_NU<cl_int, 1>, G, L>::run(device, context, queue, num_elements, "test_scexmax_non_uniform", scexmax_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, SCEX_NU<cl_uint, 1>, G, L>::run(device, context, queue, num_elements, "test_scexmax_non_uniform", scexmax_non_uniform_source, 0, required_extensions);
@@ -577,7 +577,7 @@ test_work_group_functions_non_uniform_arithmetic(cl_device_id device, cl_context
     error |= test<cl_uchar, SCEX_NU<cl_uchar, 1>, G, L>::run(device, context, queue, num_elements, "test_scexmax_non_uniform", scexmax_non_uniform_source, 0, required_extensions);
     error |= test<cl_float, SCEX_NU<cl_float, 1>, G, L>::run(device, context, queue, num_elements, "test_scexmax_non_uniform", scexmax_non_uniform_source, 0, required_extensions);
     error |= test<cl_double, SCEX_NU<cl_double, 1>, G, L>::run(device, context, queue, num_elements, "test_scexmax_non_uniform", scexmax_non_uniform_source, 0, required_extensions);
-   //error |= test<subgroups::cl_half, SCEX_NU<subgroups::cl_half, 1>, G, L>::run(device, context, queue, num_elements, "test_scexmax_non_uniform", scexmax_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, SCEX_NU<subgroups::cl_half, 1>, G, L>::run(device, context, queue, num_elements, "test_scexmax_non_uniform", scexmax_non_uniform_source, 0, required_extensions);
 
     error |= test<cl_int, SCEX_NU<cl_int, 2>, G, L>::run(device, context, queue, num_elements, "test_scexmin_non_uniform", scexmin_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, SCEX_NU<cl_uint, 2>, G, L>::run(device, context, queue, num_elements, "test_scexmin_non_uniform", scexmin_non_uniform_source, 0, required_extensions);
@@ -589,7 +589,7 @@ test_work_group_functions_non_uniform_arithmetic(cl_device_id device, cl_context
     error |= test<cl_uchar, SCEX_NU<cl_uchar, 2>, G, L>::run(device, context, queue, num_elements, "test_scexmin_non_uniform", scexmin_non_uniform_source, 0, required_extensions);
     error |= test<cl_float, SCEX_NU<cl_float, 2>, G, L>::run(device, context, queue, num_elements, "test_scexmin_non_uniform", scexmin_non_uniform_source, 0, required_extensions);
     error |= test<cl_double, SCEX_NU<cl_double, 2>, G, L>::run(device, context, queue, num_elements, "test_scexmin_non_uniform", scexmin_non_uniform_source, 0, required_extensions);
-   //error |= test<subgroups::cl_half, SCEX_NU<subgroups::cl_half, 2>, G, L>::run(device, context, queue, num_elements, "test_scexmin_non_uniform", scexmin_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, SCEX_NU<subgroups::cl_half, 2>, G, L>::run(device, context, queue, num_elements, "test_scexmin_non_uniform", scexmin_non_uniform_source, 0, required_extensions);
 
     error |= test<cl_int, SCEX_NU<cl_int, 3>, G, L>::run(device, context, queue, num_elements, "test_scexmul_non_uniform", scexmul_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, SCEX_NU<cl_uint, 3>, G, L>::run(device, context, queue, num_elements, "test_scexmul_non_uniform", scexmul_non_uniform_source, 0, required_extensions);
@@ -601,7 +601,7 @@ test_work_group_functions_non_uniform_arithmetic(cl_device_id device, cl_context
     error |= test<cl_uchar, SCEX_NU<cl_uchar, 3>, G, L>::run(device, context, queue, num_elements, "test_scexmul_non_uniform", scexmul_non_uniform_source, 0, required_extensions);
     error |= test<cl_float, SCEX_NU<cl_float, 3>, G, L>::run(device, context, queue, num_elements, "test_scexmul_non_uniform", scexmul_non_uniform_source, 0, required_extensions);
     error |= test<cl_double, SCEX_NU<cl_double, 3>, G, L>::run(device, context, queue, num_elements, "test_scexmul_non_uniform", scexmul_non_uniform_source, 0, required_extensions);
-   //error |= test<subgroups::cl_half, SCEX_NU<subgroups::cl_half, 3>, G, L>::run(device, context, queue, num_elements, "test_scexmul_non_uniform", scexmul_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, SCEX_NU<subgroups::cl_half, 3>, G, L>::run(device, context, queue, num_elements, "test_scexmul_non_uniform", scexmul_non_uniform_source, 0, required_extensions);
 
     error |= test<cl_int, SCEX_NU<cl_int, 4>, G, L>::run(device, context, queue, num_elements, "test_scexand_non_uniform", scexand_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, SCEX_NU<cl_uint, 4>, G, L>::run(device, context, queue, num_elements, "test_scexand_non_uniform", scexand_non_uniform_source, 0, required_extensions);
@@ -644,7 +644,7 @@ test_work_group_functions_non_uniform_arithmetic(cl_device_id device, cl_context
     error |= test<cl_uchar, RED_NU<cl_uchar, 0>, G, L>::run(device, context, queue, num_elements, "test_redadd_non_uniform", redadd_non_uniform_source, 0, required_extensions);
     error |= test<cl_float, RED_NU<cl_float, 0>, G, L>::run(device, context, queue, num_elements, "test_redadd_non_uniform", redadd_non_uniform_source, 0, required_extensions);
     error |= test<cl_double, RED_NU<cl_double, 0>, G, L>::run(device, context, queue, num_elements, "test_redadd_non_uniform", redadd_non_uniform_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, RED_NU<subgroups::cl_half, 0>, G, L>::run(device, context, queue, num_elements, "test_redadd_non_uniform", redadd_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, RED_NU<subgroups::cl_half, 0>, G, L>::run(device, context, queue, num_elements, "test_redadd_non_uniform", redadd_non_uniform_source, 0, required_extensions);
 
     error |= test<cl_int, RED_NU<cl_int, 1>, G, L>::run(device, context, queue, num_elements, "test_redmax_non_uniform", redmax_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, RED_NU<cl_uint, 1>, G, L>::run(device, context, queue, num_elements, "test_redmax_non_uniform", redmax_non_uniform_source, 0, required_extensions);
@@ -656,7 +656,7 @@ test_work_group_functions_non_uniform_arithmetic(cl_device_id device, cl_context
     error |= test<cl_uchar, RED_NU<cl_uchar, 1>, G, L>::run(device, context, queue, num_elements, "test_redmax_non_uniform", redmax_non_uniform_source, 0, required_extensions);
     error |= test<cl_float, RED_NU<cl_float, 1>, G, L>::run(device, context, queue, num_elements, "test_redmax_non_uniform", redmax_non_uniform_source, 0, required_extensions);
     error |= test<cl_double, RED_NU<cl_double, 1>, G, L>::run(device, context, queue, num_elements, "test_redmax_non_uniform", redmax_non_uniform_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, RED_NU<subgroups::cl_half, 1>, G, L>::run(device, context, queue, num_elements, "test_redmax_non_uniform", redmax_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, RED_NU<subgroups::cl_half, 1>, G, L>::run(device, context, queue, num_elements, "test_redmax_non_uniform", redmax_non_uniform_source, 0, required_extensions);
 
     error |= test<cl_int, RED_NU<cl_int, 2>, G, L>::run(device, context, queue, num_elements, "test_redmin_non_uniform", redmin_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, RED_NU<cl_uint, 2>, G, L>::run(device, context, queue, num_elements, "test_redmin_non_uniform", redmin_non_uniform_source, 0, required_extensions);
@@ -668,7 +668,7 @@ test_work_group_functions_non_uniform_arithmetic(cl_device_id device, cl_context
     error |= test<cl_uchar, RED_NU<cl_uchar, 2>, G, L>::run(device, context, queue, num_elements, "test_redmin_non_uniform", redmin_non_uniform_source, 0, required_extensions);
     error |= test<cl_float, RED_NU<cl_float, 2>, G, L>::run(device, context, queue, num_elements, "test_redmin_non_uniform", redmin_non_uniform_source, 0, required_extensions);
     error |= test<cl_double, RED_NU<cl_double, 2>, G, L>::run(device, context, queue, num_elements, "test_redmin_non_uniform", redmin_non_uniform_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, RED_NU<subgroups::cl_half, 2>, G, L>::run(device, context, queue, num_elements, "test_redmin_non_uniform", redmin_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, RED_NU<subgroups::cl_half, 2>, G, L>::run(device, context, queue, num_elements, "test_redmin_non_uniform", redmin_non_uniform_source, 0, required_extensions);
 
     error |= test<cl_int, RED_NU<cl_int, 3>, G, L>::run(device, context, queue, num_elements, "test_redmul_non_uniform", redmul_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, RED_NU<cl_uint, 3>, G, L>::run(device, context, queue, num_elements, "test_redmul_non_uniform", redmul_non_uniform_source, 0, required_extensions);
@@ -680,7 +680,7 @@ test_work_group_functions_non_uniform_arithmetic(cl_device_id device, cl_context
     error |= test<cl_uchar, RED_NU<cl_uchar, 3>, G, L>::run(device, context, queue, num_elements, "test_redmul_non_uniform", redmul_non_uniform_source, 0, required_extensions);
     error |= test<cl_float, RED_NU<cl_float, 3>, G, L>::run(device, context, queue, num_elements, "test_redmul_non_uniform", redmul_non_uniform_source, 0, required_extensions);
     error |= test<cl_double, RED_NU<cl_double, 3>, G, L>::run(device, context, queue, num_elements, "test_redmul_non_uniform", redmul_non_uniform_source, 0, required_extensions);
-    //error |= test<subgroups::cl_half, RED_NU<subgroups::cl_half, 3>, G, L>::run(device, context, queue, num_elements, "test_redmul_non_uniform", redmul_non_uniform_source, 0, required_extensions);
+    error |= test<subgroups::cl_half, RED_NU<subgroups::cl_half, 3>, G, L>::run(device, context, queue, num_elements, "test_redmul_non_uniform", redmul_non_uniform_source, 0, required_extensions);
 
     error |= test<cl_int, RED_NU<cl_int, 4>, G, L>::run(device, context, queue, num_elements, "test_redand_non_uniform", redand_non_uniform_source, 0, required_extensions);
     error |= test<cl_uint, RED_NU<cl_uint, 4>, G, L>::run(device, context, queue, num_elements, "test_redand_non_uniform", redand_non_uniform_source, 0, required_extensions);
