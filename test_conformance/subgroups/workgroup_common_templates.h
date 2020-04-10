@@ -81,8 +81,7 @@ struct BC {
                 for (i = 0; i < n; ++i) {
                     int midx = 4 * ii + 4 * i + 2; // index of the third element int the vector.
                     m[midx] = (cl_int)l;           // storing information about broadcasting index - earlier calculated
-                    int number;
-                    number = (int)(genrand_int32(gMTdata) & 0x7fffffff); // caclute value for broadcasting
+                    cl_ulong number = genrand_int64(gMTdata); // calculate value for broadcasting
                     set_value(t[ii + i], number);
                     //log_info("wg = %d ,sg = %d, inside sg = %d, number == %d, l = %d, midx = %d\n", k, j, i, number, l, midx);
                 }
@@ -477,8 +476,7 @@ struct SHF {
                         m[midx] = (cl_int)delta;
                     }
 
-                    cl_uint number;
-                    number = (int)(genrand_int32(gMTdata) & 0x7fffffff); // calculate value for shuffle function
+                    cl_ulong number = genrand_int64(gMTdata); // calculate value for shuffle function
                     set_value(t[ii + i], number);
                     //log_info("wg = %d ,sg = %d, inside sg = %d, number == %d, l = %d, midx = %d\n", k, j, i, number, l, midx);
                 }
