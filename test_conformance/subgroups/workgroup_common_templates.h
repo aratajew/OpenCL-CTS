@@ -20,10 +20,6 @@
 #include <bitset>
 
 
-inline cl_uint set_bit(cl_uint bit_value, cl_uint number, cl_uint position) {
-    number ^= (-(bit_value) ^ number) & (1UL << position);
-    return number;
-}
 typedef std::bitset<128> bs128;
 inline cl_uint4 generate_bit_mask(cl_uint subgroup_local_id, std::string mask_type, cl_uint max_sub_group_size) {
     bs128 mask128;
