@@ -95,7 +95,6 @@ template<>
 struct scalar_type<cl_uint8> { using type = cl_uint; };
 template<>
 struct scalar_type<cl_uint16> { using type = cl_uint; };
-
 template<>
 struct scalar_type<cl_int2> { using type = cl_int; };
 template<>
@@ -106,7 +105,6 @@ template<>
 struct scalar_type<cl_int8> { using type = cl_int; };
 template<>
 struct scalar_type<cl_int16> { using type = cl_int; };
-
 template<>
 struct scalar_type<cl_ulong2> { using type = cl_ulong; };
 template<>
@@ -117,7 +115,6 @@ template<>
 struct scalar_type<cl_ulong8> { using type = cl_ulong; };
 template<>
 struct scalar_type<cl_ulong16> { using type = cl_ulong; };
-
 template<>
 struct scalar_type<cl_long2> { using type = cl_long; };
 template<>
@@ -128,7 +125,6 @@ template<>
 struct scalar_type<cl_long8> { using type = cl_long; };
 template<>
 struct scalar_type<cl_long16> { using type = cl_long; };
-
 template<>
 struct scalar_type<cl_ushort2> { using type = cl_ushort; };
 template<>
@@ -139,7 +135,6 @@ template<>
 struct scalar_type<cl_ushort8> { using type = cl_ushort; };
 template<>
 struct scalar_type<cl_ushort16> { using type = cl_ushort; };
-
 template<>
 struct scalar_type<cl_short2> { using type = cl_short; };
 template<>
@@ -150,7 +145,6 @@ template<>
 struct scalar_type<cl_short8> { using type = cl_short; };
 template<>
 struct scalar_type<cl_short16> { using type = cl_short; };
-
 template<>
 struct scalar_type<cl_uchar2> { using type = cl_uchar; };
 template<>
@@ -161,7 +155,6 @@ template<>
 struct scalar_type<cl_uchar8> { using type = cl_uchar; };
 template<>
 struct scalar_type<cl_uchar16> { using type = cl_uchar; };
-
 template<>
 struct scalar_type<cl_char2> { using type = cl_char; };
 template<>
@@ -172,7 +165,6 @@ template<>
 struct scalar_type<cl_char8> { using type = cl_char; };
 template<>
 struct scalar_type<cl_char16> { using type = cl_char; };
-
 template<>
 struct scalar_type<cl_float2> { using type = cl_float; };
 template<>
@@ -183,7 +175,6 @@ template<>
 struct scalar_type<cl_float8> { using type = cl_float; };
 template<>
 struct scalar_type<cl_float16> { using type = cl_float; };
-
 template<>
 struct scalar_type<subgroups::cl_half2> { using type = cl_half; };
 template<>
@@ -194,7 +185,6 @@ template<>
 struct scalar_type<subgroups::cl_half8> { using type = cl_half; };
 template<>
 struct scalar_type<subgroups::cl_half16> { using type = cl_half; };
-
 template<>
 struct scalar_type<cl_double2> { using type = cl_double; };
 template<>
@@ -207,13 +197,47 @@ template<>
 struct scalar_type<cl_double16> { using type = cl_double; };
 
 template<typename Ty>
-struct is_vector_type {};
-
-template<typename Ty>
 struct is_vector_type3 {};
+template<>
+struct is_vector_type3<subgroups::cl_uint3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_int3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_ulong3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_long3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_ushort3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_short3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_uchar3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_char3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_float3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_half3> : std::true_type {};
+template<>
+struct is_vector_type3<subgroups::cl_double3> : std::true_type {};
+
 template<typename Ty>
 struct is_vector_type_half {};
+template<>
+struct is_vector_type_half<subgroups::cl_half> : std::false_type {};
+template<>
+struct is_vector_type_half<subgroups::cl_half2> : std::true_type {};
+template<>
+struct is_vector_type_half<subgroups::cl_half4> : std::true_type {};
+template<>
+struct is_vector_type_half<subgroups::cl_half8> : std::true_type {};
+template<>
+struct is_vector_type_half<subgroups::cl_half16> : std::true_type {};
 
+
+
+template<typename Ty>
+struct is_vector_type {};
 template<>
 struct is_vector_type<cl_int> : std::false_type {};
 template<>
@@ -235,12 +259,7 @@ struct is_vector_type<cl_char> : std::false_type {};
 template<>
 struct is_vector_type<cl_uchar> : std::false_type {};
 template<>
-struct is_vector_type_half<subgroups::cl_half> : std::false_type {};
-
-template<>
 struct is_vector_type<cl_uint2> : std::true_type {};
-template<>
-struct is_vector_type3<subgroups::cl_uint3> : std::true_type {};
 template<>
 struct is_vector_type<cl_uint4> : std::true_type {};
 template<>
@@ -250,112 +269,76 @@ struct is_vector_type<cl_uint16> : std::true_type {};
 template<>
 struct is_vector_type<cl_int2> : std::true_type {};
 template<>
-struct is_vector_type3<subgroups::cl_int3> : std::true_type {};
-template<>
 struct is_vector_type<cl_int4> : std::true_type {};
 template<>
 struct is_vector_type<cl_int8> : std::true_type {};
 template<>
 struct is_vector_type<cl_int16> : std::true_type {};
-
 template<>
 struct is_vector_type<cl_ulong2> : std::true_type {};
-template<>
-struct is_vector_type3<subgroups::cl_ulong3> : std::true_type {};
 template<>
 struct is_vector_type<cl_ulong4> : std::true_type {};
 template<>
 struct is_vector_type<cl_ulong8> : std::true_type {};
 template<>
 struct is_vector_type<cl_ulong16> : std::true_type {};
-
 template<>
 struct is_vector_type<cl_long2> : std::true_type {};
-template<>
-struct is_vector_type3<subgroups::cl_long3> : std::true_type {};
 template<>
 struct is_vector_type<cl_long4> : std::true_type {};
 template<>
 struct is_vector_type<cl_long8> : std::true_type {};
 template<>
 struct is_vector_type<cl_long16> : std::true_type {};
-
 template<>
 struct is_vector_type<cl_ushort2> : std::true_type {};
-template<>
-struct is_vector_type3<subgroups::cl_ushort3> : std::true_type {};
 template<>
 struct is_vector_type<cl_ushort4> : std::true_type {};
 template<>
 struct is_vector_type<cl_ushort8> : std::true_type {};
 template<>
 struct is_vector_type<cl_ushort16> : std::true_type {};
-
 template<>
 struct is_vector_type<cl_short2> : std::true_type {};
-template<>
-struct is_vector_type3<subgroups::cl_short3> : std::true_type {};
 template<>
 struct is_vector_type<cl_short4> : std::true_type {};
 template<>
 struct is_vector_type<cl_short8> : std::true_type {};
 template<>
 struct is_vector_type<cl_short16> : std::true_type {};
-
 template<>
 struct is_vector_type<cl_uchar2> : std::true_type {};
-template<>
-struct is_vector_type3<subgroups::cl_uchar3> : std::true_type {};
 template<>
 struct is_vector_type<cl_uchar4> : std::true_type {};
 template<>
 struct is_vector_type<cl_uchar8> : std::true_type {};
 template<>
 struct is_vector_type<cl_uchar16> : std::true_type {};
-
 template<>
 struct is_vector_type<cl_char2> : std::true_type {};
-template<>
-struct is_vector_type3<subgroups::cl_char3> : std::true_type {};
 template<>
 struct is_vector_type<cl_char4> : std::true_type {};
 template<>
 struct is_vector_type<cl_char8> : std::true_type {};
 template<>
 struct is_vector_type<cl_char16> : std::true_type {};
-
 template<>
 struct is_vector_type<cl_float2> : std::true_type {};
-template<>
-struct is_vector_type3<subgroups::cl_float3> : std::true_type {};
 template<>
 struct is_vector_type<cl_float4> : std::true_type {};
 template<>
 struct is_vector_type<cl_float8> : std::true_type {};
 template<>
 struct is_vector_type<cl_float16> : std::true_type {};
-
-template<>
-struct is_vector_type_half<subgroups::cl_half2> : std::true_type {};
-template<>
-struct is_vector_type3<subgroups::cl_half3> : std::true_type {};
-template<>
-struct is_vector_type_half<subgroups::cl_half4> : std::true_type {};
-template<>
-struct is_vector_type_half<subgroups::cl_half8> : std::true_type {};
-template<>
-struct is_vector_type_half<subgroups::cl_half16> : std::true_type {};
-
 template<>
 struct is_vector_type<cl_double2> : std::true_type {};
-template<>
-struct is_vector_type3<subgroups::cl_double3> : std::true_type {};
 template<>
 struct is_vector_type<cl_double4> : std::true_type {};
 template<>
 struct is_vector_type<cl_double8> : std::true_type {};
 template<>
 struct is_vector_type<cl_double16> : std::true_type {};
+
 
 template <typename Ty>
 typename std::enable_if<is_vector_type<Ty>::value, bool>::type
