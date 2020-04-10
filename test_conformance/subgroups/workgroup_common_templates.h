@@ -16,7 +16,7 @@
 #ifndef WORKGROUPCOMMONTEMPLATES_H
 #define WORKGROUPCOMMONTEMPLATES_H
 #include "typeWrappers.h"
-#include "harness\conversions.h"
+#include "harness/conversions.h"
 #include <bitset>
 
 
