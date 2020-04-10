@@ -16,8 +16,8 @@
 #ifndef WORKGROUPCOMMONTEMPLATES_H
 #define WORKGROUPCOMMONTEMPLATES_H
 #include "typeWrappers.h"
+#include "harness\conversions.h"
 #include <bitset>
-
 
 
 inline cl_uint set_bit(cl_uint bit_value, cl_uint number, cl_uint position) {
@@ -205,43 +205,14 @@ template <typename Ty> struct OPERATION<Ty, 9> { static Ty calculate(Ty a, Ty b)
 
 static float to_float(subgroups::cl_half x)
 {
-    int significand = x.data & 0x3ff;
-    int exp = x.data >> 10 & 0x1f;
-    switch (exp) {
-    case 0:
-        exp -= 0xf + 9;
-        break;
-    case 0x1f:
-        return significand ? NAN : x.data >> 15 ? -INFINITY : INFINITY;
-    default:
-        significand |= 0x400;
-        exp -= 0xf + 10;
-        break;
-    }
-    float result = static_cast<float>(ldexp(significand, exp));
-    return x.data >> 15 ? -result : result;
+    return half2float(x.data);
 }
 
 static subgroups::cl_half to_half(float x)
 {
-    if (x < 0) {
-        subgroups::cl_half y = to_half(-x);
-        y.data |= 0x8000;
-        return y;
-    }
-    if (isnan(x))
-        return { 0x7fff };
-    if (isinf(x))
-        return { 0x7c00 };
-    int exp;
-    int significand = static_cast<int>(frexp(x, &exp) * (1 << 11));
-    if (significand == 0 || exp <= -24)
-        return { 0 };
-    if (exp >= 17)
-        return { 0x7c00 };
-    if (exp <= -14)
-        return { static_cast<uint16_t>(significand >> (-13 - exp)) };
-    return { static_cast<uint16_t>((exp + 0xe) << 10 | (significand & 0x3ff)) };
+    subgroups::cl_half value;
+    value.data = float2half_rte(x);
+    return value;
 }
 
 template <> struct OPERATION<subgroups::cl_half, 0> {
