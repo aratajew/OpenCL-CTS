@@ -880,7 +880,7 @@ struct test {
         clProgramWrapper program;
         clKernelWrapper kernel;
         cl_platform_id platform;
-        cl_int sgmap[4*GSIZE];
+        cl_int sgmap[4 * GSIZE] {};
         Ty mapin[LSIZE];
         Ty mapout[LSIZE];
 
